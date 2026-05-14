@@ -14,6 +14,6 @@ struct WhatsChatCloneApp: App {
         WindowGroup {
             MainTabBarView()
         }
-        .modelContainer(for: Message.self)
+        .modelContainer(for: [ChatSummary.self, Message.self])
     }
 }

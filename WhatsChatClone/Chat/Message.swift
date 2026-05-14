@@ -17,6 +17,8 @@ final class Message {
     var isFromMe: Bool
     var timestamp: Date      // 核心：用于物理排序，精确到毫秒
     @Attribute(.externalStorage) var imageData: Data? // 大数据（图片）建议开启外部存储优化
+    // 关键：建立反向关联
+    var chatSummary: ChatSummary?
     init(text: String, time: String, isFromMe: Bool, imageData: Data? = nil, timestamp: Date = Date()) {
         self.id = UUID()
         self.text = text

@@ -10,7 +10,9 @@ struct ChatDetailView: View {
     @Environment(\.modelContext) private var modelContext
     
     // 2. 自动从数据库实时抓取消息（按时间升序）
-    @Query(sort: \Message.timestamp, order: .forward) var messages: [Message]
+//    @Query(sort: \Message.timestamp, order: .forward) var messages: [Message]
+    // 关键：根据当前聊天对象的 id (或 name) 进行过滤
+    @Query var messages: [Message]
     
     // 3. 状态管理
     @State private var inputText = ""
@@ -30,6 +32,17 @@ struct ChatDetailView: View {
     let waGreen = Color(red: 0.88, green: 0.99, blue: 0.78)
     let waBackground = Color(red: 0.94, green: 0.91, blue: 0.88)
     let keyboardLikeBackground = Color(UIColor.systemGroupedBackground)
+    
+    init(chat: ChatSummary) {
+        self.chat = chat
+        
+        let targetID = chat.id
+        _messages = Query(
+            filter: #Predicate<Message> { $0.chatSummary?.id == targetID },
+            sort: \Message.timestamp,
+            order: .forward
+        )
+    }
 
     // 统一收起逻辑
     private func dismissInput() {
@@ -73,6 +86,9 @@ struct ChatDetailView: View {
         .navigationTitle(chat.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
+        .toolbarBackground(keyboardLikeBackground, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarColorScheme(.light, for: .navigationBar)
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 0) {
                 inputBar.background(keyboardLikeBackground)
@@ -114,8 +130,9 @@ struct ChatDetailView: View {
         }
         .onAppear {
             if viewModel == nil {
-                viewModel = ChatViewModel(modelContext: modelContext)
+//                viewModel = ChatViewModel(modelContext: modelContext, chatId: chat.id.uuidString)
                 print("DEBUG: ViewModel 已成功初始化")
+                viewModel = ChatViewModel(modelContext: modelContext, chat: chat)
             }
         }
     }
@@ -191,6 +208,21 @@ struct ChatDetailView: View {
             .cornerRadius(12)
             .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
             .frame(maxWidth: UIScreen.main.bounds.width * 0.75, alignment: msg.isFromMe ? .trailing : .leading)
+            .contextMenu {
+                // 复制按钮
+                Button {
+                    UIPasteboard.general.string = msg.text
+                } label: {
+                    Label("复制", systemImage: "doc.on.doc")
+                }
+                
+                // 删除按钮（危险操作建议用 destructive）
+                Button(role: .destructive) {
+                    deleteMessage(msg)
+                } label: {
+                    Label("删除", systemImage: "trash")
+                }
+            }
             
             if !msg.isFromMe { Spacer() }
         }
@@ -232,5 +264,32 @@ struct ChatDetailView: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 10)
+    }
+    
+    
+    private func deleteMessage(_ msg: Message) {
+        // 1. 从数据库中移除
+        let summary = msg.chatSummary
+        modelContext.delete(msg)
+        
+        if let summary = summary {
+            // 尝试获取该会话中 剩余的、时间最晚的一条消息
+            // 注意：由于刚刚执行了 delete，我们需要从 summary.messages 里过滤掉当前这条
+            let remainingMessages = summary.messages?.filter { $0.id != msg.id }
+            
+            if let lastRemaining = remainingMessages?.sorted(by: { $0.timestamp < $1.timestamp }).last {
+                // 如果还有消息，就把预览更新为上一条
+                summary.lastMessage = lastRemaining.text
+                summary.lastTimestamp = lastRemaining.timestamp
+            } else {
+                // 如果消息删光了，清空预览
+                summary.lastMessage = "暂无消息"
+                // 时间可以保持不变，或者设为一个很早的时间
+            }
+        }
+        // 2. 尝试保存
+        try? modelContext.save()
+        
+     
     }
 }

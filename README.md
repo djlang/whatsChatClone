@@ -21,8 +21,13 @@ WhatsChatClone 是一个基于 Swift 和 SwiftUI 开发的即时通讯应用克�
 - **状态管理**: 统一使用 `isInputFocused` 和 `isShowingAttachment` 管理 UI 状态。
 - **布局策略**: 使用 `safeAreaInset` 确保输入区域与键盘同步，通过 `ScrollViewReader` 管理消息滚动。
 
+当前进度 (截至 2026年5月14日)
+
+- ** 聊天列表 (ChatListView) 的实时最新消息显示。
+- ** 聊天数据持久化
+
+
 ## 待办任务
-- [ ] 聊天列表 (ChatListView) 的实时最新消息显示。
 - [ ] 语音通话和视频通话功能的 UI 与业务逻辑。
 - [ ] 用户设置界面的完善。
 - [ ] 性能优化：对于超长消息记录的懒加载与分页优化。
