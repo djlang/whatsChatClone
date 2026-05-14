@@ -236,7 +236,8 @@ struct ChatDetailView: View {
                     .foregroundColor(.blue)
             }
             
-            TextField("输入消息...", text: $inputText)
+            TextField("输入消息...", text: $inputText, axis: .vertical)
+                .lineLimit(1...5)
                 .focused($isInputFocused)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
@@ -264,6 +265,7 @@ struct ChatDetailView: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 10)
+        .background(.ultraThinMaterial)
     }
     
     
