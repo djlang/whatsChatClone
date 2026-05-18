@@ -94,6 +94,7 @@ class ChatViewModel {
         currentChat.messages?.append(replyMessage)
         currentChat.lastMessage = replyMessage.text
         currentChat.lastTimestamp = now
+        currentChat.unreadCount += 1
         save()
     }
     

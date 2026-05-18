@@ -56,10 +56,22 @@ struct ChatDetailView: View {
         VStack(spacing: 0) {
             ScrollViewReader { proxy in
                 ScrollView {
-                    VStack(spacing: 12) {
+                    LazyVStack(spacing: 12) {
                         // 使用从数据库查询到的 messages
-                        ForEach(messages) { message in
-                            chatBubble(msg: message).id(message.id)
+                        ForEach(Array(messages.enumerated()), id: \.element.id) { index, msg in
+                            
+                            if index == 0 || !isSameDay(date1: messages[index - 1].timestamp, date2: msg.timestamp) {
+                                Text(dateHeader(for: msg.timestamp))
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(.gray)
+                                    .padding(.vertical, 8)
+                                    .padding(.horizontal, 12)
+                                    .background(Color(.systemGray6))
+                                    .cornerRadius(8)
+                                    .padding(.vertical, 10)
+                            }
+                            
+                            chatBubble(msg: msg).id(msg.id)
                         }
                     }
                     .padding()
@@ -133,6 +145,13 @@ struct ChatDetailView: View {
 //                viewModel = ChatViewModel(modelContext: modelContext, chatId: chat.id.uuidString)
                 print("DEBUG: ViewModel 已成功初始化")
                 viewModel = ChatViewModel(modelContext: modelContext, chat: chat)
+            }
+            
+            // 进入页面即表示已读
+            if chat.unreadCount > 0 {
+                chat.unreadCount = 0
+                // 尝试保存状态
+                try? modelContext.save()
             }
         }
     }
@@ -292,6 +311,25 @@ struct ChatDetailView: View {
         // 2. 尝试保存
         try? modelContext.save()
         
-     
+    }
+    
+    
+    ///-------  时间相关  --------
+    ///// 建议直接写在 ChatDetailView 的 private 扩展中
+    private func dateHeader(for date: Date) -> String {
+        let calendar = Calendar.current
+        if calendar.isDateInToday(date) {
+            return "今天"
+        } else if calendar.isDateInYesterday(date) {
+            return "昨天"
+        } else {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy年MM月dd日"
+            return formatter.string(from: date)
+        }
+    }
+
+    private func isSameDay(date1: Date, date2: Date) -> Bool {
+        Calendar.current.isDate(date1, inSameDayAs: date2)
     }
 }

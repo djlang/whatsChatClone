@@ -34,13 +34,15 @@ final class ChatSummary {
     
     // 用于首页显示的冗余数据，方便排序和预览
     var lastMessage: String = ""
-    var lastTimestamp: Date = Date()
+    var lastTimestamp: Date?
+    var unreadCount: Int = 0 // 新增字段，默认为 0
 
-    init(id: UUID = UUID(), name: String, imageName: String, lastMessage: String = "", lastTimestamp: Date = Date()) {
+    init(id: UUID = UUID(), name: String, imageName: String, lastMessage: String = "", lastTimestamp: Date? = nil, unreadCount: Int = 0) {
         self.id = id
         self.name = name
         self.imageName = imageName
         self.lastMessage = lastMessage
         self.lastTimestamp = lastTimestamp
+        self.unreadCount = unreadCount
     }
 }

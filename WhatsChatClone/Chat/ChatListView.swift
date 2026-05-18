@@ -29,11 +29,22 @@ struct ChatListView: View {
     
     var body: some View {
         NavigationStack {
-            List(filteredChats) { chat in
-              // 2. 点击进入详情页
-                NavigationLink(destination: ChatDetailView(chat: chat)) {
-                    ChatRowView(chat: chat)
+            List {
+                ForEach(filteredChats) { chat in
+                  // 2. 点击进入详情页
+                    NavigationLink(destination: ChatDetailView(chat: chat)) {
+                        ChatRowView(chat: chat)
+                    }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button(role: .destructive) {
+                            modelContext.delete(chat)
+                            try? modelContext.save()
+                        } label: {
+                            Label("删除", systemImage: "trash")
+                        }
+                    }
                 }
+                
             }
             .listStyle(.plain)
             .navigationTitle("聊天")
@@ -76,6 +87,16 @@ struct ChatListView: View {
         }
         
         // 建议显式保存一下
+        try? modelContext.save()
+    }
+    
+    private func deleteChats(at offsets: IndexSet) {
+        for index in offsets {
+            let chatToDelete = filteredChats[index]
+            modelContext.delete(chatToDelete)
+        }
+        
+        // 尝试保存更改
         try? modelContext.save()
     }
 }

@@ -39,15 +39,39 @@ struct ChatRowView: View {
                         .font(.headline)
                     Spacer()
                     // 显示最后一条消息的时间
-                    Text(formatDate(chat.lastTimestamp))
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
+//                    Text(formatDate(chat.lastTimestamp))
+//                        .font(.subheadline)
+//                        .foregroundColor(.gray)
+                    // --- 核心优化：智能显示日期/时间 ---
+                    if let timestamp = chat.lastTimestamp {
+                        Text(timestamp.chatListTimeStr)
+                            .font(.caption)
+                            .foregroundColor(chat.unreadCount > 0 ? .green : .gray)
+                    } else {
+                        Text("") // 如果没有任何消息，留空
+                    }
                 }
                 
-                Text(chat.lastMessage) // 这里会自动更新为详情页发出的最新内容
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-                    .lineLimit(1)
+                HStack {
+                    Text(chat.lastMessage) // 这里会自动更新为详情页发出的最新内容
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                        .lineLimit(1)
+                    Spacer()
+                    
+                    // --- 红点 UI ---
+                    if chat.unreadCount > 0 {
+                        Text("\(chat.unreadCount)")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(minWidth: 20, minHeight: 20) // 保证圆形
+                            .background(Color.green) // WhatsApp 风格用绿色，微信用红色
+                            .clipShape(Capsule()) // 超过两位数时自动变成胶囊形
+                    }
+                }
+                
+               
+                
             }
         }
         .padding(.vertical, 5)
