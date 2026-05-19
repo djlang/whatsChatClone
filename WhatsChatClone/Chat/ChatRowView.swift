@@ -53,7 +53,7 @@ struct ChatRowView: View {
                 }
                 
                 HStack {
-                    Text(chat.lastMessage) // 这里会自动更新为详情页发出的最新内容
+                    Text(chat.messages?.last?.previewText ?? chat.lastMessage) // Use previewText if available
                         .font(.subheadline)
                         .foregroundColor(.gray)
                         .lineLimit(1)

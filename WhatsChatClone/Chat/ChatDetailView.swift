@@ -21,6 +21,8 @@ struct ChatDetailView: View {
     @FocusState private var isInputFocused: Bool
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
     
+    @State private var selectedLocationMessage: Message? = nil
+    
     // 预览相关状态
     @State private var previewMessage: Message? = nil
     // 键盘与滚动状态
@@ -171,6 +173,10 @@ struct ChatDetailView: View {
                 try? modelContext.save()
             }
         }
+        //打开地理位置
+        .fullScreenCover(item: $selectedLocationMessage) { msg in
+            LocationFullScreenView(msg: msg)
+        }
     }
     
     
@@ -282,6 +288,9 @@ struct ChatDetailView: View {
             }
         case "location":
             LocationMessageBubble(msg: msg)
+                .onTapGesture {
+                    self.selectedLocationMessage = msg
+                }
         default: // text
             Text(msg.text)
                 .padding(.horizontal, 12)

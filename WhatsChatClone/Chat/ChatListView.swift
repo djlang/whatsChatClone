@@ -17,7 +17,6 @@ struct ChatListView: View {
 //    private var chats: [ChatSummary]
     @State private var isShowingAddContact = false // 控制弹窗显示
     
-   
     // 过滤后的列表
     var filteredChats: [ChatSummary] {
         if searchText.isEmpty {
