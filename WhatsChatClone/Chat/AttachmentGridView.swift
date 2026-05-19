@@ -12,6 +12,8 @@ struct AttachmentGridView: View {
     @Binding var selectedItem: PhotosPickerItem?
     
     var onTriggerPicker: () -> Void  // 新增：触发第三方选择器的回调
+    var onTriggerLocation: () -> Void  // 新增：触发定位的回调
+    
     // 定义四列等分的布局
     let columns = [
         GridItem(.flexible()),
@@ -65,7 +67,11 @@ struct AttachmentGridView: View {
     }
     
     private func doSome(_ title: String) {
-        print(title)
+        if title == "位置" {
+            onTriggerLocation()
+        }else {
+            
+        }
     
     }
 }

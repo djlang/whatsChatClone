@@ -4,8 +4,9 @@ import ZLPhotoBrowser
 import PhotosUI
 
 struct ChatDetailView: View {
-    var chat: ChatSummary
+    @StateObject private var locationManager = LocationManager()
     
+    var chat: ChatSummary
     // 1. 获取数据库上下文
     @Environment(\.modelContext) private var modelContext
     
@@ -105,9 +106,20 @@ struct ChatDetailView: View {
             VStack(spacing: 0) {
                 inputBar.background(keyboardLikeBackground)
                 if isShowingAttachment {
-                    AttachmentGridView(selectedItem: $selectedPhotoItem, onTriggerPicker: {
-                        self.openZLPhotoPicker()
-                    })
+                    AttachmentGridView(
+                        selectedItem: $selectedPhotoItem, onTriggerPicker: {
+                            self.openZLPhotoPicker()
+                        },
+                        onTriggerLocation: {
+                            // 1. 先收起附件栏，像微信一样的交互
+                            withAnimation {
+                                isShowingAttachment = false
+                            }
+                            // 2. 发起定位请求
+                            locationManager.requestLocation()
+                        }
+                                       
+                    )
                     .frame(height: 250)
                     .background(keyboardLikeBackground)
                     .transition(.move(edge: .bottom))
@@ -140,6 +152,11 @@ struct ChatDetailView: View {
         .onChange(of: isInputFocused) { _, newValue in
             if newValue { withAnimation { isShowingAttachment = false } }
         }
+        .onChange(of: locationManager.location) { oldLoc, newLoc in
+            if let loc = newLoc {
+                sendLocationMessage(loc)
+            }
+        }
         .onAppear {
             if viewModel == nil {
 //                viewModel = ChatViewModel(modelContext: modelContext, chatId: chat.id.uuidString)
@@ -154,6 +171,20 @@ struct ChatDetailView: View {
                 try? modelContext.save()
             }
         }
+    }
+    
+    
+    private func sendLocationMessage(_ loc: CLLocation) {
+        // 1. 构造地理位置消息（使用你刚才确认过的 Model 结构）
+        let geocoder = CLGeocoder()
+        geocoder.reverseGeocodeLocation(loc) {placemarks, error in
+            let address = placemarks?.first?.name ?? "未知地点"
+            DispatchQueue.main.async {
+                viewModel?.sendMessage(type: "location", text: nil, imageData: nil, latitude: loc.coordinate.latitude, longitude: loc.coordinate.longitude, locationName: address)
+            }
+            
+        }
+        
     }
     
     private func scrollToBottom(proxy: ScrollViewProxy) {
@@ -181,7 +212,8 @@ struct ChatDetailView: View {
         picker.selectImageBlock = { results, isOriginal in
             for result in results {
                 if let data = result.image.jpegData(compressionQuality: 0.8) {
-                    self.viewModel?.sendImageMessage(imageData: data)
+//                    self.viewModel?.sendImageMessage(imageData: data)
+                    self.viewModel?.sendMessage(type: "image", imageData: data)
                 }
             }
             DispatchQueue.main.async { self.dismissInput() }
@@ -199,43 +231,24 @@ struct ChatDetailView: View {
         HStack {
             if msg.isFromMe { Spacer() }
             
-            VStack(alignment: .trailing, spacing: 4) {
-                if let imageData = msg.imageData, let uiImage = UIImage(data: imageData) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 200, height: 200)
-                        .cornerRadius(10)
-                        .onTapGesture {
-                            if msg.imageData != nil {
-                                self.previewMessage = msg // 只要赋值，cover 就会自动打开
-                            }
-                        }
-                } else {
-                    Text(msg.text)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                }
+            VStack(alignment: msg.isFromMe ? .trailing : .leading, spacing: 4) {
+                // --- 核心分类显示逻辑 ---
+                messageContent(msg: msg)
                 
-                Text(msg.time)
+                // --- 公共时间显示 ---
+                Text(formatToTime(msg.timestamp)) // 统一使用 Date 转 String
                     .font(.system(size: 10))
                     .foregroundColor(.gray)
-                    .padding(.trailing, 8)
-                    .padding(.bottom, 4)
+                    .padding(.horizontal, 4)
             }
-            .background(msg.isFromMe ? waGreen : Color.white)
-            .cornerRadius(12)
             .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
             .frame(maxWidth: UIScreen.main.bounds.width * 0.75, alignment: msg.isFromMe ? .trailing : .leading)
             .contextMenu {
-                // 复制按钮
                 Button {
                     UIPasteboard.general.string = msg.text
                 } label: {
                     Label("复制", systemImage: "doc.on.doc")
                 }
-                
-                // 删除按钮（危险操作建议用 destructive）
                 Button(role: .destructive) {
                     deleteMessage(msg)
                 } label: {
@@ -244,6 +257,37 @@ struct ChatDetailView: View {
             }
             
             if !msg.isFromMe { Spacer() }
+        }
+    }
+
+    // 辅助函数：将 timestamp 转为 "14:20" 格式
+    private func formatToTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: date)
+    }
+    
+    // 在 ChatDetailView 中添加一个专门负责内容分发的组件
+    @ViewBuilder
+    private func messageContent(msg: Message) -> some View {
+        switch msg.messageType {
+        case "image":
+            if let imageData = msg.imageData, let uiImage = UIImage(data: imageData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 200, height: 200)
+                    .cornerRadius(10)
+                    .onTapGesture { self.previewMessage = msg }
+            }
+        case "location":
+            LocationMessageBubble(msg: msg)
+        default: // text
+            Text(msg.text)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(msg.isFromMe ? waGreen : Color.white)
+                .cornerRadius(12)
         }
     }
     
@@ -269,7 +313,7 @@ struct ChatDetailView: View {
             
             if !inputText.isEmpty {
                 Button {
-                    viewModel?.sendMessage(inputText) // 执行发送
+                    viewModel?.sendMessage(type: "text" ,text: inputText) // 执行发送
                     inputText = "" // 清空输入框
                 } label: {
                     Image(systemName: "paperplane.fill")

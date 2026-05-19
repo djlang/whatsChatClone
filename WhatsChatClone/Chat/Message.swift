@@ -13,19 +13,58 @@ import Foundation
 final class Message {
     @Attribute(.unique) var id: UUID
     var text: String
-    var time: String
+    var time: String?
     var isFromMe: Bool
     var timestamp: Date      // 核心：用于物理排序，精确到毫秒
+    var messageType: String = "text" // "text", "image",location, "audio", "video"
+
     @Attribute(.externalStorage) var imageData: Data? // 大数据（图片）建议开启外部存储优化
+    
+    // 位置相关字段
+    var latitude: Double?
+    var longitude: Double?
+    var locationName: String?
+    
     // 关键：建立反向关联
     var chatSummary: ChatSummary?
-    init(text: String, time: String, isFromMe: Bool, imageData: Data? = nil, timestamp: Date = Date()) {
+    
+    init(
+        text: String,
+        time: String? = nil,
+        isFromMe: Bool,
+        timestamp: Date = Date(),
+        messageType: String = "text",
+        imageData: Data? = nil,
+        latitude: Double? = nil,
+        longitude: Double? = nil,
+        locationName: String? = nil
+    ) {
         self.id = UUID()
         self.text = text
         self.time = time
         self.isFromMe = isFromMe
-        self.timestamp = timestamp// 记录创建时的精确瞬间
+        self.timestamp = timestamp
+        self.messageType = messageType
         self.imageData = imageData
+        self.latitude = latitude
+        self.longitude = longitude
+        self.locationName = locationName
         
+    }
+}
+
+extension Message {
+    /// 用于在会话列表预览中显示的文字内容
+    var previewText: String {
+        switch messageType {
+        case "image":
+            return "[图片]"
+        case "location":
+            return "[位置]"
+        case "voice": // 预留给未来的语音功能
+            return "[语音]"
+        default:
+            return text ?? ""
+        }
     }
 }

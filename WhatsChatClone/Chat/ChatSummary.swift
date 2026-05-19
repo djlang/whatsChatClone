@@ -36,7 +36,7 @@ final class ChatSummary {
     var lastMessage: String = ""
     var lastTimestamp: Date?
     var unreadCount: Int = 0 // 新增字段，默认为 0
-
+ 
     init(id: UUID = UUID(), name: String, imageName: String, lastMessage: String = "", lastTimestamp: Date? = nil, unreadCount: Int = 0) {
         self.id = id
         self.name = name
