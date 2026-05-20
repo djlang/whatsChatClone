@@ -53,20 +53,14 @@ struct ChatBubbleView: View {
     private var messageContent: some View {
         switch msg.messageType {
         case "image":
-            if let data = msg.imageData, let uiImage = UIImage(data: data) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 200, height: 200)
-                    .cornerRadius(10)
-                    .onTapGesture { onPreviewImage(msg) }
-            }
+            ImageMessageBubble(msg: msg).onPreview(onPreviewImage)
         case "location":
             LocationMessageBubble(msg: msg)
         case "video":
             VideoMessageBubble(msg: msg)
                 .onTapGesture { onPlayVideo(msg) }
         case "voice":
+            // 假设 VoiceMessageBubble 已存在并需要适配
             VoiceMessageBubble(msg: msg, isPlaying: audioPlayerManager.currentlyPlayingMessageId == msg.id){
                 if let data = msg.voiceData {
                     audioPlayerManager.playVoice(data: data, messageId: msg.id)

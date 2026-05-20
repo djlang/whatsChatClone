@@ -7,8 +7,12 @@
 import SwiftUI
 import MapKit
 
-struct LocationMessageBubble: View {
-    let msg: Message // 直接传入模型，减少外部取值的逻辑
+struct LocationMessageBubble: View, MessageRenderable {
+    let msg: Message
+    
+    init(msg: Message) {
+        self.msg = msg
+    }
     
     @State private var isShowingFullScreenMap = false
 

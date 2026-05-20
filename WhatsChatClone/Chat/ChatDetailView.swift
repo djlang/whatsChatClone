@@ -131,6 +131,9 @@ struct ChatDetailView: View {
                             isVoiceMode.toggle()
                             if isVoiceMode { dismissInput() } else { isInputFocused = true }
                         }
+                    },
+                    onRecordComplete: { data, duration in
+                        viewModel?.sendMessage(type: "voice", voiceData: data, voiceDuration: duration)
                     }
                 )
                 .background(keyboardLikeBackground)

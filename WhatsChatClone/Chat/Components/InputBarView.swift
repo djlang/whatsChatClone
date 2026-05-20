@@ -8,6 +8,7 @@ struct InputBarView: View {
     var onToggleAttachment: () -> Void
     var onSendMessage: () -> Void
     var onToggleVoiceMode: () -> Void
+    var onRecordComplete: (Data, Double) -> Void
     
     var body: some View {
         HStack(spacing: 12) {
@@ -18,12 +19,9 @@ struct InputBarView: View {
             }
             
             if isVoiceMode {
-                // Placeholder for VoiceRecordButton implementation
-                Text("按住说话")
-                    .frame(maxWidth: .infinity)
+                VoiceRecordButton(onRecordComplete: onRecordComplete)
                     .frame(height: 40)
-                    .background(Color.white)
-                    .cornerRadius(20)
+                    .padding(.horizontal, 4)
             } else {
                 TextField("输入消息...", text: $inputText, axis: .vertical)
                     .lineLimit(1...5)

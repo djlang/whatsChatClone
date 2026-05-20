@@ -6,8 +6,12 @@
 //
 import SwiftUI
 
-struct VideoMessageBubble: View {
+struct VideoMessageBubble: View, MessageRenderable {
     let msg: Message
+    
+    init(msg: Message) {
+        self.msg = msg
+    }
     
     var body: some View {
         ZStack {
