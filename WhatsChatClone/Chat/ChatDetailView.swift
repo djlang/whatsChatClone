@@ -77,7 +77,14 @@ struct ChatDetailView: View {
                                     .padding(.vertical, 10)
                             }
                             
-                            chatBubble(msg: msg).id(msg.id)
+                            ChatBubbleView(
+                                msg: msg,
+                                onDelete: { deleteMessage(msg) },
+                                onPlayVideo: { playVideo(msg: $0) },
+                                onPreviewImage: { previewMessage = $0 },
+                                audioPlayerManager: audioPlayerManager
+                            )
+                            .id(msg.id)
                                 
                         }
                     }
@@ -110,21 +117,32 @@ struct ChatDetailView: View {
         .toolbarColorScheme(.light, for: .navigationBar)
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 0) {
-                inputBar.background(keyboardLikeBackground)
+                InputBarView(
+                    inputText: $inputText,
+                    isVoiceMode: $isVoiceMode,
+                    isInputFocused: $isInputFocused,
+                    onToggleAttachment: toggleAttachment,
+                    onSendMessage: {
+                        viewModel?.sendMessage(type: "text", text: inputText)
+                        inputText = ""
+                    },
+                    onToggleVoiceMode: {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            isVoiceMode.toggle()
+                            if isVoiceMode { dismissInput() } else { isInputFocused = true }
+                        }
+                    }
+                )
+                .background(keyboardLikeBackground)
+                
                 if isShowingAttachment {
                     AttachmentGridView(
-                        selectedItem: $selectedPhotoItem, onTriggerPicker: {
-                            self.openZLPhotoPicker()
-                        },
+                        selectedItem: $selectedPhotoItem,
+                        onTriggerPicker: self.openZLPhotoPicker,
                         onTriggerLocation: {
-                            // 1. 先收起附件栏，像微信一样的交互
-                            withAnimation {
-                                isShowingAttachment = false
-                            }
-                            // 2. 发起定位请求
+                            withAnimation { isShowingAttachment = false }
                             locationManager.requestLocation()
                         }
-                                       
                     )
                     .frame(height: 250)
                     .background(keyboardLikeBackground)
@@ -244,173 +262,7 @@ struct ChatDetailView: View {
         picker.showPhotoLibrary(sender: rootVC)
     }
 
-    // --- 气泡组件 ---
 
-    @ViewBuilder
-    func chatBubble(msg: Message) -> some View {
-        HStack {
-            if msg.isFromMe { Spacer() }
-            
-            VStack(alignment: msg.isFromMe ? .trailing : .leading, spacing: 4) {
-                // --- 核心分类显示逻辑 ---
-                messageContent(msg: msg)
-                
-                // --- 公共时间显示 ---
-                Text(formatToTime(msg.timestamp)) // 统一使用 Date 转 String
-                    .font(.system(size: 10))
-                    .foregroundColor(.gray)
-                    .padding(.horizontal, 4)
-            }
-            .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
-            .frame(maxWidth: UIScreen.main.bounds.width * 0.75, alignment: msg.isFromMe ? .trailing : .leading)
-            .contextMenu {
-                // 1. 原有的复制功能（仅限文本）
-                if msg.messageType == "text" {
-                    Button {
-                        UIPasteboard.general.string = msg.text
-                    } label: {
-                        Label("复制", systemImage: "doc.on.doc")
-                    }
-                }
-
-                // 2. 新增下载功能（仅限图片和视频）
-                if msg.messageType == "image" || msg.messageType == "video" {
-                    Button {
-                        saveToGallery(msg: msg)
-                        
-                    } label: {
-                        Label("保存到相册", systemImage: "square.and.arrow.down")
-                    }
-                }
-
-                // 3. 原有的删除功能
-                Button(role: .destructive) {
-                    deleteMessage(msg)
-                } label: {
-                    Label("删除", systemImage: "trash")
-                }
-            }
-            
-            if !msg.isFromMe { Spacer() }
-        }
-    }
-
-    // 辅助函数：将 timestamp 转为 "14:20" 格式
-    private func formatToTime(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        return formatter.string(from: date)
-    }
-    
-    // 在 ChatDetailView 中添加一个专门负责内容分发的组件
-    @ViewBuilder
-    private func messageContent(msg: Message) -> some View {
-        switch msg.messageType {
-        case "image":
-            if let imageData = msg.imageData, let uiImage = UIImage(data: imageData) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 200, height: 200)
-                    .cornerRadius(10)
-                    .onTapGesture { self.previewMessage = msg }
-            }
-        case "location":
-            LocationMessageBubble(msg: msg)
-                .onTapGesture {
-                    self.selectedLocationMessage = msg
-                }
-        case "video":
-            // 视频气泡展示逻辑
-            VideoMessageBubble(msg: msg)
-                .onTapGesture {
-                    // 触发视频播放逻辑（下一步我们要实现的）
-                    self.playVideo(msg: msg)
-                }
-        case "voice":
-            VoiceMessageBubble(msg: msg, isPlaying: audioPlayerManager.currentlyPlayingMessageId == msg.id){
-                if let data = msg.voiceData {
-                    audioPlayerManager.playVoice(data: data, messageId: msg.id)
-                }
-            }
-        default: // text
-            Text(msg.text ?? "") // 建议使用可选解包
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(msg.isFromMe ? waGreen : Color.white)
-                .cornerRadius(12)
-        }
-    }
-    
-    var inputBar: some View {
-        HStack(spacing: 12) {
-            Button(action: toggleAttachment) {
-                Image(systemName: "plus")
-                    .font(.title3)
-                    .foregroundColor(.blue)
-            }
-            
-            if isVoiceMode {
-                VoiceRecordButton { data, duration in
-                    viewModel?.sendMessage(type: "voice", voiceData: data, voiceDuration: duration)
-                    
-                }
-                .frame(height: 40) // 与文字输入框高度保持近似
-                .padding(.horizontal, 4)
-            }else {
-                TextField("输入消息...", text: $inputText, axis: .vertical)
-                    .lineLimit(1...5)
-                    .focused($isInputFocused)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(Color.white)
-                    .cornerRadius(20)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                    )
-            }
-            
-           
-            
-            if !inputText.isEmpty  && !isVoiceMode{
-                Button {
-                    viewModel?.sendMessage(type: "text" ,text: inputText) // 执行发送
-                    inputText = "" // 清空输入框
-                } label: {
-                    Image(systemName: "paperplane.fill")
-                        .foregroundColor(.blue)
-                        .font(.title3)
-                }
-            } else {
-                
-                Button {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        isVoiceMode.toggle()
-                        
-                        if isVoiceMode {
-                            // 切换到语音模式时，收起键盘和底部菜单
-                            dismissInput()
-                        } else {
-                            // 切换回文本模式时，自动弹出键盘
-                            isInputFocused = true
-                        }
-                    }
-                } label: {
-                    Image(systemName: isVoiceMode ? "keyboard" : "mic")
-                        .foregroundColor(.blue)
-                        .font(.title3)
-                        .frame(width: 24, height: 24)
-                }
-                
-                
-            }
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 10)
-        .background(.ultraThinMaterial)
-    }
-    
     //处理视频？
     private func handleVideoSelection(asset: PHAsset, thumbnailData: Data) {
         let options = PHVideoRequestOptions()
@@ -424,7 +276,7 @@ struct ChatDetailView: View {
             let videoURL = urlAsset.url
             
             // 建议：进行一次简单的压缩，避免发送原始 4K 视频导致数据库爆炸
-            self.compressVideo(inputURL: videoURL) { compressedData in
+            MediaService.shared.compressVideo(inputURL: videoURL) { compressedData in
                 guard let data = compressedData else { return }
                 
                 DispatchQueue.main.async {
@@ -459,59 +311,10 @@ struct ChatDetailView: View {
         }
     }
     
-  
-    private func compressVideo(inputURL: URL, completion: @escaping (Data?) -> Void) {
-        let exportURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".mp4")
-        let asset = AVAsset(url: inputURL)
-        
-        guard let exportSession = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetMediumQuality) else {
-            completion(nil)
-            return
-        }
-        
-        exportSession.outputURL = exportURL
-        exportSession.outputFileType = .mp4
-        exportSession.shouldOptimizeForNetworkUse = true
-        
-        exportSession.exportAsynchronously {
-            if exportSession.status == .completed {
-                let data = try? Data(contentsOf: exportURL)
-                completion(data)
-            } else {
-                completion(nil)
-            }
-        }
-    }
+
     
     private func saveToGallery(msg: Message) {
-        if msg.messageType == "image", let data = msg.imageData, let image = UIImage(data: data) {
-            // 保存图片
-            UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
-            // 提示用户（可以加个简单的 Toast）
-            print("图片已保存")
-        }
-        else if msg.messageType == "video", let videoData = msg.videoData {
-            // 保存视频：需要先写成临时文件
-            let tempPath = NSTemporaryDirectory() + UUID().uuidString + ".mp4"
-            let fileURL = URL(fileURLWithPath: tempPath)
-            
-            do {
-                try videoData.write(to: fileURL)
-                PHPhotoLibrary.shared().performChanges({
-                    PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: fileURL)
-                }) { success, error in
-                    if success {
-                        print("视频保存成功")
-                    } else {
-                        print("保存失败: \(String(describing: error))")
-                    }
-                    // 清理临时文件
-                    try? FileManager.default.removeItem(at: fileURL)
-                }
-            } catch {
-                print("写入临时文件失败")
-            }
-        }
+        MediaService.shared.saveToGallery(msg: msg)
     }
     
     
