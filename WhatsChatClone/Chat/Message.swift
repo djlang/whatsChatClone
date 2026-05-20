@@ -20,6 +20,14 @@ final class Message {
 
     @Attribute(.externalStorage) var imageData: Data? // 大数据（图片）建议开启外部存储优化
     
+    ///视频消息
+    @Attribute(.externalStorage) var videoData: Data?
+    var videoPath: String? // 存储在 Caches 目录下的相对路径
+    
+    ///语音消息
+    @Attribute(.externalStorage) var voiceData: Data? // 语音二进制数据
+    var voiceDuration: Double? // 语音时长（秒）
+    
     // 位置相关字段
     var latitude: Double?
     var longitude: Double?
@@ -35,6 +43,7 @@ final class Message {
         timestamp: Date = Date(),
         messageType: String = "text",
         imageData: Data? = nil,
+        videoData: Data? = nil,
         latitude: Double? = nil,
         longitude: Double? = nil,
         locationName: String? = nil
@@ -46,6 +55,7 @@ final class Message {
         self.timestamp = timestamp
         self.messageType = messageType
         self.imageData = imageData
+        self.videoData = videoData
         self.latitude = latitude
         self.longitude = longitude
         self.locationName = locationName
@@ -63,8 +73,11 @@ extension Message {
             return "[位置]"
         case "voice": // 预留给未来的语音功能
             return "[语音]"
+        case "video":
+            return "[视频]"
         default:
-            return text ?? ""
+            return text
         }
     }
 }
+

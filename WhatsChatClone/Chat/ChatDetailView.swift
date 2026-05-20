@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 import ZLPhotoBrowser
 import PhotosUI
-
+import AVKit
 struct ChatDetailView: View {
     @StateObject private var locationManager = LocationManager()
     
@@ -217,10 +217,20 @@ struct ChatDetailView: View {
         let picker = ZLPhotoPicker() // 如果报错，请确认版本类名
         picker.selectImageBlock = { results, isOriginal in
             for result in results {
-                if let data = result.image.jpegData(compressionQuality: 0.8) {
-//                    self.viewModel?.sendImageMessage(imageData: data)
-                    self.viewModel?.sendMessage(type: "image", imageData: data)
+                let asset = result.asset
+                if asset.mediaType == .video {
+                    // A. 处理视频
+                    // 这里的 result.image 已经是 ZL 帮你生成好的视频封面图
+                    if let thumbData = result.image.jpegData(compressionQuality: 0.6) {
+                        self.handleVideoSelection(asset: asset, thumbnailData: thumbData)
+                    }
+                }else {
+                    if let data = result.image.jpegData(compressionQuality: 0.8) {
+    //                    self.viewModel?.sendImageMessage(imageData: data)
+                        self.viewModel?.sendMessage(type: "image", imageData: data)
+                    }
                 }
+                
             }
             DispatchQueue.main.async { self.dismissInput() }
         }
@@ -291,8 +301,15 @@ struct ChatDetailView: View {
                 .onTapGesture {
                     self.selectedLocationMessage = msg
                 }
+        case "video":
+            // 视频气泡展示逻辑
+            VideoMessageBubble(msg: msg)
+                .onTapGesture {
+                    // 触发视频播放逻辑（下一步我们要实现的）
+                    self.playVideo(msg: msg)
+                }
         default: // text
-            Text(msg.text)
+            Text(msg.text ?? "") // 建议使用可选解包
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .background(msg.isFromMe ? waGreen : Color.white)
@@ -338,6 +355,78 @@ struct ChatDetailView: View {
         .padding(.horizontal)
         .padding(.vertical, 10)
         .background(.ultraThinMaterial)
+    }
+    
+    //处理视频？
+    private func handleVideoSelection(asset: PHAsset, thumbnailData: Data) {
+        let options = PHVideoRequestOptions()
+        options.deliveryMode = .highQualityFormat
+        options.isNetworkAccessAllowed = true // 允许从 iCloud 下载
+        
+        PHImageManager.default().requestAVAsset(forVideo: asset, options: options) { (avAsset, _, _) in
+            guard let urlAsset = avAsset as? AVURLAsset else { return }
+            
+            // 获取视频原始 URL
+            let videoURL = urlAsset.url
+            
+            // 建议：进行一次简单的压缩，避免发送原始 4K 视频导致数据库爆炸
+            self.compressVideo(inputURL: videoURL) { compressedData in
+                guard let data = compressedData else { return }
+                
+                DispatchQueue.main.async {
+                    // 发送视频消息：imageData 存封面，videoData 存视频
+                    self.viewModel?.sendMessage(type: "video", imageData: thumbnailData, videoData: data)
+                }
+            }
+        }
+    }
+    
+    
+
+    private func playVideo(msg: Message) {
+        guard let videoData = msg.videoData else { return }
+        
+        // 1. 准备 URL
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("temp_video.mp4")
+        try? videoData.write(to: tempURL)
+        
+        // 2. 创建播放器
+        let player = AVPlayer(url: tempURL)
+        let playerVC = AVPlayerViewController()
+        playerVC.player = player
+        playerVC.allowsVideoFrameAnalysis = false // 提高性能
+        
+        // 3. 弹出播放
+        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootVC = scene.windows.first?.rootViewController else { return }
+        
+        rootVC.present(playerVC, animated: true) {
+            player.play()
+        }
+    }
+    
+  
+    private func compressVideo(inputURL: URL, completion: @escaping (Data?) -> Void) {
+        let exportURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".mp4")
+        let asset = AVAsset(url: inputURL)
+        
+        guard let exportSession = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetMediumQuality) else {
+            completion(nil)
+            return
+        }
+        
+        exportSession.outputURL = exportURL
+        exportSession.outputFileType = .mp4
+        exportSession.shouldOptimizeForNetworkUse = true
+        
+        exportSession.exportAsynchronously {
+            if exportSession.status == .completed {
+                let data = try? Data(contentsOf: exportURL)
+                completion(data)
+            } else {
+                completion(nil)
+            }
+        }
     }
     
     

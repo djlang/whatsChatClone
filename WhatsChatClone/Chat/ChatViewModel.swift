@@ -27,12 +27,21 @@ class ChatViewModel {
         text: String? = nil,
         time: String? = "",
         imageData: Data? = nil,
+        videoData: Data? = nil,
         latitude: Double? = nil,
         longitude: Double? = nil,
         locationName: String? = nil
     ) {
         let now = Date()
         let timeString = formatTime(now)
+        
+        var videoPathName: String? = nil
+        
+        // --- 在存入数据库前，先处理缓存 ---
+        if type == "video", let data = videoData {
+            videoPathName = saveVideoToCache(data: data)
+        }
+        
         // 1. 创建消息实例
         let newMessage = Message(
             text: text ?? "",
@@ -41,6 +50,7 @@ class ChatViewModel {
             timestamp: now,
             messageType: type,
             imageData: imageData,
+            videoData: videoData,
             latitude: latitude,
             longitude: longitude,
             locationName: locationName
@@ -76,6 +86,8 @@ class ChatViewModel {
             currentChat.lastMessage = "[图片]"
         case "location":
             currentChat.lastMessage = "[位置]"
+        case "video":
+            currentChat.lastMessage = "[视频]"
         case "audio":
             currentChat.lastMessage = "[语音]"
         default:
@@ -122,6 +134,20 @@ class ChatViewModel {
          formatter.dateFormat = "HH:mm"
          return formatter.string(from: date)
      }
+    
+    func saveVideoToCache(data: Data) -> String? {
+        let fileName = "\(UUID().uuidString).mp4"
+        let cachePath = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+        let fileURL = cachePath.appendingPathComponent(fileName)
+        
+        do {
+            try data.write(to: fileURL)
+            return fileName // 只存文件名，因为路径前半部分可能随 App 更新改变
+        } catch {
+            print("缓存视频失败: \(error)")
+            return nil
+        }
+    }
 }
 
 
