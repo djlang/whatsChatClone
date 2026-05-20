@@ -44,6 +44,8 @@ final class Message {
         messageType: String = "text",
         imageData: Data? = nil,
         videoData: Data? = nil,
+        voiceData: Data? = nil,
+        voiceDuration: Double? = nil,
         latitude: Double? = nil,
         longitude: Double? = nil,
         locationName: String? = nil
@@ -56,6 +58,8 @@ final class Message {
         self.messageType = messageType
         self.imageData = imageData
         self.videoData = videoData
+        self.voiceData = voiceData
+        self.voiceDuration = voiceDuration
         self.latitude = latitude
         self.longitude = longitude
         self.locationName = locationName

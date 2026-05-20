@@ -5,6 +5,9 @@ import PhotosUI
 import AVKit
 struct ChatDetailView: View {
     @StateObject private var locationManager = LocationManager()
+    @StateObject private var audioPlayerManager = AudioPlayerManager()
+    
+    @State private var isVoiceMode: Bool = false
     
     var chat: ChatSummary
     // 1. 获取数据库上下文
@@ -75,6 +78,7 @@ struct ChatDetailView: View {
                             }
                             
                             chatBubble(msg: msg).id(msg.id)
+                                
                         }
                     }
                     .padding()
@@ -260,11 +264,26 @@ struct ChatDetailView: View {
             .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
             .frame(maxWidth: UIScreen.main.bounds.width * 0.75, alignment: msg.isFromMe ? .trailing : .leading)
             .contextMenu {
-                Button {
-                    UIPasteboard.general.string = msg.text
-                } label: {
-                    Label("复制", systemImage: "doc.on.doc")
+                // 1. 原有的复制功能（仅限文本）
+                if msg.messageType == "text" {
+                    Button {
+                        UIPasteboard.general.string = msg.text
+                    } label: {
+                        Label("复制", systemImage: "doc.on.doc")
+                    }
                 }
+
+                // 2. 新增下载功能（仅限图片和视频）
+                if msg.messageType == "image" || msg.messageType == "video" {
+                    Button {
+                        saveToGallery(msg: msg)
+                        
+                    } label: {
+                        Label("保存到相册", systemImage: "square.and.arrow.down")
+                    }
+                }
+
+                // 3. 原有的删除功能
                 Button(role: .destructive) {
                     deleteMessage(msg)
                 } label: {
@@ -308,6 +327,12 @@ struct ChatDetailView: View {
                     // 触发视频播放逻辑（下一步我们要实现的）
                     self.playVideo(msg: msg)
                 }
+        case "voice":
+            VoiceMessageBubble(msg: msg, isPlaying: audioPlayerManager.currentlyPlayingMessageId == msg.id){
+                if let data = msg.voiceData {
+                    audioPlayerManager.playVoice(data: data, messageId: msg.id)
+                }
+            }
         default: // text
             Text(msg.text ?? "") // 建议使用可选解包
                 .padding(.horizontal, 12)
@@ -320,24 +345,35 @@ struct ChatDetailView: View {
     var inputBar: some View {
         HStack(spacing: 12) {
             Button(action: toggleAttachment) {
-                Image(systemName: isShowingAttachment ? "keyboard" : "plus")
+                Image(systemName: "plus")
                     .font(.title3)
                     .foregroundColor(.blue)
             }
             
-            TextField("输入消息...", text: $inputText, axis: .vertical)
-                .lineLimit(1...5)
-                .focused($isInputFocused)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(Color.white)
-                .cornerRadius(20)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                )
+            if isVoiceMode {
+                VoiceRecordButton { data, duration in
+                    viewModel?.sendMessage(type: "voice", voiceData: data, voiceDuration: duration)
+                    
+                }
+                .frame(height: 40) // 与文字输入框高度保持近似
+                .padding(.horizontal, 4)
+            }else {
+                TextField("输入消息...", text: $inputText, axis: .vertical)
+                    .lineLimit(1...5)
+                    .focused($isInputFocused)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.white)
+                    .cornerRadius(20)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                    )
+            }
             
-            if !inputText.isEmpty {
+           
+            
+            if !inputText.isEmpty  && !isVoiceMode{
                 Button {
                     viewModel?.sendMessage(type: "text" ,text: inputText) // 执行发送
                     inputText = "" // 清空输入框
@@ -347,9 +383,27 @@ struct ChatDetailView: View {
                         .font(.title3)
                 }
             } else {
-                Image(systemName: "mic")
-                    .foregroundColor(.blue)
-                    .font(.title3)
+                
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        isVoiceMode.toggle()
+                        
+                        if isVoiceMode {
+                            // 切换到语音模式时，收起键盘和底部菜单
+                            dismissInput()
+                        } else {
+                            // 切换回文本模式时，自动弹出键盘
+                            isInputFocused = true
+                        }
+                    }
+                } label: {
+                    Image(systemName: isVoiceMode ? "keyboard" : "mic")
+                        .foregroundColor(.blue)
+                        .font(.title3)
+                        .frame(width: 24, height: 24)
+                }
+                
+                
             }
         }
         .padding(.horizontal)
@@ -425,6 +479,37 @@ struct ChatDetailView: View {
                 completion(data)
             } else {
                 completion(nil)
+            }
+        }
+    }
+    
+    private func saveToGallery(msg: Message) {
+        if msg.messageType == "image", let data = msg.imageData, let image = UIImage(data: data) {
+            // 保存图片
+            UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
+            // 提示用户（可以加个简单的 Toast）
+            print("图片已保存")
+        }
+        else if msg.messageType == "video", let videoData = msg.videoData {
+            // 保存视频：需要先写成临时文件
+            let tempPath = NSTemporaryDirectory() + UUID().uuidString + ".mp4"
+            let fileURL = URL(fileURLWithPath: tempPath)
+            
+            do {
+                try videoData.write(to: fileURL)
+                PHPhotoLibrary.shared().performChanges({
+                    PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: fileURL)
+                }) { success, error in
+                    if success {
+                        print("视频保存成功")
+                    } else {
+                        print("保存失败: \(String(describing: error))")
+                    }
+                    // 清理临时文件
+                    try? FileManager.default.removeItem(at: fileURL)
+                }
+            } catch {
+                print("写入临时文件失败")
             }
         }
     }

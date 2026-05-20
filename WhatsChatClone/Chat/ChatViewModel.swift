@@ -28,6 +28,8 @@ class ChatViewModel {
         time: String? = "",
         imageData: Data? = nil,
         videoData: Data? = nil,
+        voiceData: Data? = nil,         // 新增
+        voiceDuration: Double? = nil,   // 新增
         latitude: Double? = nil,
         longitude: Double? = nil,
         locationName: String? = nil
@@ -51,6 +53,8 @@ class ChatViewModel {
             messageType: type,
             imageData: imageData,
             videoData: videoData,
+            voiceData: voiceData,
+            voiceDuration: voiceDuration,
             latitude: latitude,
             longitude: longitude,
             locationName: locationName
@@ -88,7 +92,7 @@ class ChatViewModel {
             currentChat.lastMessage = "[位置]"
         case "video":
             currentChat.lastMessage = "[视频]"
-        case "audio":
+        case "voice":
             currentChat.lastMessage = "[语音]"
         default:
             currentChat.lastMessage = message.text
@@ -107,7 +111,13 @@ class ChatViewModel {
             replyText = "图片收到了，很赞！"
         } else if userContent == "[location]" {
             replyText = "看到你的位置了。"
-        } else {
+        } else if userContent == "[video]" {
+            replyText = "这么搞笑"
+        }else if userContent == "[voice]" {
+            replyText = "没听清"
+        }
+                    
+        else {
             replyText = "收到消息。"
         }
         
@@ -130,10 +140,10 @@ class ChatViewModel {
     }
     
     private func formatTime(_ date: Date) -> String {
-         let formatter = DateFormatter()
+            let formatter = DateFormatter()
          formatter.dateFormat = "HH:mm"
          return formatter.string(from: date)
-     }
+    }
     
     func saveVideoToCache(data: Data) -> String? {
         let fileName = "\(UUID().uuidString).mp4"

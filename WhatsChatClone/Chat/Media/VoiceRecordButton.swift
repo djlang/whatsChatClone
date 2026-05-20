@@ -14,7 +14,7 @@ struct VoiceRecordButton: View {
     var onRecordComplete: (Data, Double) -> Void
     
     var body: some View {
-        Text(isRecording ? (isCancelled ? "松开 取消" : "松开 结束") : "按住 说话")
+        Text(isRecording ? (isCancelled ? "松开 取消" : "松开 发送") : "按住 说话")
             .font(.system(size: 15, weight: .bold))
             .foregroundColor(.primary)
             .frame(maxWidth: .infinity)
