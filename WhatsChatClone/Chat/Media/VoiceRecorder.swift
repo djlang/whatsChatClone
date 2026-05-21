@@ -32,8 +32,21 @@ class VoiceRecorder: NSObject, ObservableObject {
         ]
         
         audioRecorder = try? AVAudioRecorder(url: tempURL, settings: settings)
+        audioRecorder?.isMeteringEnabled = true
         audioRecorder?.record()
         startTime = Date()
+    }
+    
+    // 获取实时音量的公开方法
+    func getAveragePower() -> Float {
+        guard let recorder = audioRecorder, recorder.isRecording else { return 0 }
+        recorder.updateMeters() // 必须先更新数据
+        
+        let power = recorder.averagePower(forChannel: 0)
+        // power 的范围是 -160dB（寂静）到 0dB（最大声）
+        // 我们把它映射到 0.1 到 1.0 的区间，方便 UI 做缩放
+        let level = max(0, power + 60) / 60
+        return max(0.1, min(level, 1.0))
     }
     
     // 停止录音并返回 (Data, 时长)

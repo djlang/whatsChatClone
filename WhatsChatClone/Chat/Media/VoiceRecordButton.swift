@@ -5,11 +5,15 @@
 //  Created by dj on 2026/5/20.
 //
 import SwiftUI
+import Combine
 
 struct VoiceRecordButton: View {
     @StateObject private var recorder = VoiceRecorder()
-    @State private var isRecording = false
-    @State private var isCancelled = false
+    @Binding var isRecording: Bool
+    @Binding var isCancelled: Bool
+    
+    @Binding var audioLevel: Float // 接收这个 Binding
+    @State private var timer: Timer? = nil
     
     var onRecordComplete: (Data, Double) -> Void
     
@@ -32,6 +36,13 @@ struct VoiceRecordButton: View {
                             isRecording = true
                             isCancelled = false
                             recorder.startRecording()
+                            
+                            // 启动定时器，每 0.1 秒更新一次音量
+                            timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
+                                withAnimation(.linear(duration: 0.1)) {
+                                    self.audioLevel = recorder.getAveragePower()
+                                }
+                            }
                             // 可以在这里触发轻微震动反馈
                             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                         }
@@ -55,6 +66,13 @@ struct VoiceRecordButton: View {
                         } else {
                             print("录音时间太短")
                         }
+                        
+                        isRecording = false
+                        isCancelled = false
+                        
+                        timer?.invalidate()
+                        timer = nil
+                        audioLevel = 0.1
                     }
             )
     }

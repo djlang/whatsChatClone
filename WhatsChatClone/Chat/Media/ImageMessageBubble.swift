@@ -27,3 +27,4 @@ struct ImageMessageBubble: View, MessageRenderable {
         }
     }
 }
+
