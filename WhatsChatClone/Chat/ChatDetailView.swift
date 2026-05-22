@@ -76,9 +76,17 @@ struct ChatDetailView: View {
     // MARK: - 主视图
     var body: some View {
         ZStack {
-            // 主内容层：只放一个骨架，内部逻辑全部抽离
+            // 主内容层
             VStack(spacing: 0) {
-                messageListView
+                MessageListView(
+                    messages: messages,
+                    audioPlayerManager: audioPlayerManager,
+                    previewMessage: $previewMessage,
+                    scrollTrigger: $scrollTrigger,
+                    onDismissInput: { dismissInput() },
+                    onDeleteMessage: { deleteMessage($0) },
+                    onPlayVideo: { playVideo(msg: $0) }
+                )
             }
             
             // --- 录音全屏遮罩层 ---
@@ -151,63 +159,6 @@ struct ChatDetailView: View {
         }
     }
     
-    // MARK: - 子视图提取 1: 消息历史滚动列表
-    private var messageListView: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(spacing: 12) {
-                    ForEach(Array(messages.enumerated()), id: \.element.id) { index, msg in
-                        
-                        if index == 0 || !isSameDay(date1: messages[index - 1].timestamp, date2: msg.timestamp) {
-                            Text(dateHeader(for: msg.timestamp))
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(.gray)
-                                .padding(.vertical, 8)
-                                .padding(.horizontal, 12)
-                                .background(Color(.systemGray6))
-                                .cornerRadius(8)
-                                .padding(.vertical, 10)
-                        }
-                        
-                        ChatBubbleView(
-                            msg: msg,
-                            onDelete: { deleteMessage(msg) },
-                            onPlayVideo: { playVideo(msg: $0) },
-                            onPreviewImage: { previewMessage = $0 },
-                            audioPlayerManager: audioPlayerManager
-                        )
-                        .id(msg.id)
-                        .overlay(alignment: msg.isFromMe ? .leading : .trailing) {
-                            if msg.isSending {
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                                    .padding(msg.isFromMe ? .leading : .trailing, -30) // 把小菊花推到气泡的外面空白处
-                            }
-                        }
-                    }
-                }
-                .padding()
-                .frame(maxWidth: .infinity)
-                .simultaneousGesture(DragGesture().onChanged { _ in
-                    dismissInput()
-                })
-            }
-            .scrollDismissesKeyboard(.interactively)
-            .background(waBackground)
-            .onTapGesture {
-                dismissInput()
-            }
-            // 修正为现代 SwiftUI 规格的双参数闭包，降低推导负担
-            .onChange(of: messages.count) { _, _ in scrollToBottom(proxy: proxy) }
-            .onChange(of: scrollTrigger) { _, _ in scrollToBottom(proxy: proxy) }
-            .onAppear {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    scrollToBottom(proxy: proxy)
-                }
-            }
-        }
-    }
-    
     // MARK: - 子视图提取 2: 底部输入功能栏
     private var bottomToolBar: some View {
         VStack(spacing: 0) {
@@ -262,15 +213,6 @@ struct ChatDetailView: View {
         }
     }
     
-    // MARK: - 业务逻辑辅助方法
-    private func scrollToBottom(proxy: ScrollViewProxy) {
-        if let lastId = messages.last?.id {
-            withAnimation(.easeOut(duration: 0.25)) {
-                proxy.scrollTo(lastId, anchor: .bottom)
-            }
-        }
-    }
-    
     private func toggleAttachment() {
         if isShowingAttachment {
             isInputFocused = true
@@ -307,9 +249,7 @@ struct ChatDetailView: View {
     }
 
     private func playVideo(msg: Message) {
-        
         guard let videoData = msg.videoData else { return }
-        
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("temp_video.mp4")
         try? videoData.write(to: tempURL)
         
@@ -344,23 +284,6 @@ struct ChatDetailView: View {
             }
         }
         try? modelContext.save()
-    }
-    
-    private func dateHeader(for date: Date) -> String {
-        let calendar = Calendar.current
-        if calendar.isDateInToday(date) {
-            return "今天"
-        } else if calendar.isDateInYesterday(date) {
-            return "昨天"
-        } else {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "yyyy年MM月dd日"
-            return formatter.string(from: date)
-        }
-    }
-
-    private func isSameDay(date1: Date, date2: Date) -> Bool {
-        Calendar.current.isDate(date1, inSameDayAs: date2)
     }
 }
 

@@ -30,4 +30,21 @@ extension Date {
             return formatter.string(from: self)
         }
     }
+    
+    func isSameDay(as otherDate: Date) -> Bool {
+        Calendar.current.isDate(self, inSameDayAs: otherDate)
+    }
+    
+    var chatDateHeader: String {
+        let calendar = Calendar.current
+        if calendar.isDateInToday(self) {
+            return "今天"
+        } else if calendar.isDateInYesterday(self) {
+            return "昨天"
+        } else {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy年MM月dd日"
+            return formatter.string(from: self)
+        }
+    }
 }
