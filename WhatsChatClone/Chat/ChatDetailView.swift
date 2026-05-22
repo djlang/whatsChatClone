@@ -102,7 +102,8 @@ struct ChatDetailView: View {
         .applyChatOverlays(
             previewMessage: $previewMessage,
             activeCallType: $activeCallType,
-            selectedLocationMessage: $selectedLocationMessage
+            selectedLocationMessage: $selectedLocationMessage,
+            chatName: chat.name
         )
         .setupChatBusinessLogic(
             isInputFocused: $isInputFocused,
@@ -266,7 +267,8 @@ extension View {
     func applyChatOverlays(
         previewMessage: Binding<Message?>,
         activeCallType: Binding<CallType?>,
-        selectedLocationMessage: Binding<Message?>
+        selectedLocationMessage: Binding<Message?>,
+        chatName: String
     ) -> some View {
         self
             .fullScreenCover(item: previewMessage) { message in
@@ -275,7 +277,7 @@ extension View {
                 }
             }
             .fullScreenCover(item: activeCallType) { callType in
-                MockCallOverlayView(callType: callType) { duration in
+                MockCallOverlayView(callType: callType, chatName: chatName) { duration in
                     print("通话结束，时长：\(duration)秒")
                 }
             }
