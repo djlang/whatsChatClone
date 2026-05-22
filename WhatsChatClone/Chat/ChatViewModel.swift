@@ -44,6 +44,8 @@ class ChatViewModel {
             videoPathName = saveVideoToCache(data: data)
         }
         
+        let isMedia = (type != "text")
+        
         // 1. 创建消息实例
         let newMessage = Message(
             text: text ?? "",
@@ -60,20 +62,33 @@ class ChatViewModel {
             locationName: locationName
         )
         
+        newMessage.isSending = isMedia // 如果是多媒体，上屏先转圈
+        
         // 2. 建立关联（SwiftData 会自动处理插入）
         currentChat.messages?.append(newMessage)
         
         // 3. 更新会话摘要展示
         updateSummary(with: newMessage)
         
-        // 4. 自动回复逻辑
-        if type == "text" {
+        // . 延迟逻辑流：模拟网络不佳/后台处理
+        if isMedia {
+            // 🎬 模拟 1.5 秒的网络传输耗时
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                self.mockReply(to: text ?? "")
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    newMessage.isSending = false // 发送成功，菊花消失
+                }
+                self.save()
+                
+                // 收到消息后，隔 1.5 秒对方开始输入并模拟回复
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                    let mockContent = type == "location" ? "[location]" : "[\(type)]"
+                    self.mockReply(to: mockContent)
+                }
             }
         } else {
+            // 📝 文本消息维持原状：瞬间发送，1.5秒后对方回复
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                self.mockReply(to: "[\(type)]")
+                self.mockReply(to: text ?? "")
             }
         }
     }

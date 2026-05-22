@@ -35,6 +35,7 @@ struct VoiceRecordButton: View {
                         if !isRecording {
                             isRecording = true
                             isCancelled = false
+                            HapticManager.shared.triggerImpact(style: .medium) // <-- 震动反馈：指尖一麻，开始录音
                             recorder.startRecording()
                             
                             // 启动定时器，每 0.1 秒更新一次音量
@@ -43,15 +44,18 @@ struct VoiceRecordButton: View {
                                     self.audioLevel = recorder.getAveragePower()
                                 }
                             }
-                            // 可以在这里触发轻微震动反馈
-                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                         }
                         
-                        // 往上滑动超过 50 像素，判定为“想取消发送”
-                        if value.translation.height < -50 {
-                            isCancelled = true
-                        } else {
-                            isCancelled = false
+                        
+                        //2. 核心优化：往上滑动超过 50 像素判断
+                        let newCancelledState = value.translation.height < -50
+                        
+                        // 临界点拦截：只有当“是否取消”的状态真正发生改变时，才触发一次轻微震动
+                        if newCancelledState != isCancelled {
+                            isCancelled = newCancelledState
+                            
+                            // 指尖轻轻“哒”一声，高级感就在这一个小动作里
+                            HapticManager.shared.triggerImpact(style: .light)
                         }
                     }
                     .onEnded { _ in

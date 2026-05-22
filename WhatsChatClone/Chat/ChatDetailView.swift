@@ -4,6 +4,16 @@ import ZLPhotoBrowser
 import PhotosUI
 import AVKit
 
+
+/// 通话类型枚举
+enum CallType: String, Identifiable {
+    case audio = "语音通话"
+    case video = "视频通话"
+    
+    // 实现 Identifiable 协议，方便 fullScreenCover 监听
+    var id: String { self.rawValue }
+}
+
 struct ChatDetailView: View {
     @StateObject private var locationManager = LocationManager()
     @StateObject private var audioPlayerManager = AudioPlayerManager()
@@ -36,6 +46,9 @@ struct ChatDetailView: View {
     
     @State private var viewModel: ChatViewModel?
     
+    //通话状态
+    @State private var activeCallType: CallType? = nil // 记录当前激活动态：语音还是视频
+    
     // WhatsApp 颜色
     let waGreen = Color(red: 0.88, green: 0.99, blue: 0.78)
     let waBackground = Color(red: 0.94, green: 0.91, blue: 0.88)
@@ -60,7 +73,7 @@ struct ChatDetailView: View {
         }
     }
 
-    // MARK: - 主视图 Body (精简版)
+    // MARK: - 主视图
     var body: some View {
         ZStack {
             // 主内容层：只放一个骨架，内部逻辑全部抽离
@@ -77,6 +90,35 @@ struct ChatDetailView: View {
         }
         .navigationTitle(chat.name)
         .navigationBarTitleDisplayMode(.inline)
+        // ---- 添加以下 toolbar 代码 ----
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Menu {
+                    Button(action: {
+                        activeCallType = .audio
+                    }) {
+                        Label("语音通话", systemImage: "phone")
+                    }
+                    
+                    Button(action: {
+                        activeCallType = .video
+                    }) {
+                        Label("视频通话", systemImage: "video")
+                    }
+                } label: {
+                    // 拼接电话图标与向下箭头，对齐原生 WhatsApp 质感
+                    HStack(spacing: 3) {
+                        Image(systemName: "phone")
+                            .font(.system(size: 16, weight: .medium))
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 10, weight: .bold))
+                    }
+                    .foregroundColor(.primary) // 让图标颜色契合导航栏主题
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                }
+            }
+        }
         .toolbar(.hidden, for: .tabBar)
         .toolbarBackground(keyboardLikeBackground, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
@@ -88,6 +130,13 @@ struct ChatDetailView: View {
         .fullScreenCover(item: $previewMessage) { message in
             if let data = message.imageData, let uiImage = UIImage(data: data) {
                 ImageDetailView(image: uiImage)
+            }
+        }
+        .fullScreenCover(item: $activeCallType) { callType in
+            // 这里是未来我们高仿的全屏通话大界面，现在先放一个临时占位，确保链路畅通
+            MockCallOverlayView(callType: callType) { duration in
+                // 这里是挂断后的回调，未来在这里落盘 SwiftData 数据库
+                print("通话结束，时长：\(duration)秒")
             }
         }
         // 键盘与系统回调监听
@@ -155,6 +204,13 @@ struct ChatDetailView: View {
                             audioPlayerManager: audioPlayerManager
                         )
                         .id(msg.id)
+                        .overlay(alignment: msg.isFromMe ? .leading : .trailing) {
+                            if msg.isSending {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                                    .padding(msg.isFromMe ? .leading : .trailing, -30) // 把小菊花推到气泡的外面空白处
+                            }
+                        }
                     }
                 }
                 .padding()

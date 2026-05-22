@@ -33,6 +33,10 @@ final class Message {
     var longitude: Double?
     var locationName: String?
     
+    
+    
+    var isSending: Bool = false // <-- 标示这条消息是否还在异步处理/发送中
+    
     // 关键：建立反向关联
     var chatSummary: ChatSummary?
     
