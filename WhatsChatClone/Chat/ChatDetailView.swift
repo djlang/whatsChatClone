@@ -133,7 +133,7 @@ struct ChatDetailView: View {
         }
         .onChange(of: locationManager.location) { _, newLoc in
             if let loc = newLoc {
-                sendLocationMessage(loc)
+                viewModel?.sendLocationMessage(loc)
             }
         }
         .onAppear {
@@ -263,16 +263,6 @@ struct ChatDetailView: View {
     }
     
     // MARK: - 业务逻辑辅助方法
-    private func sendLocationMessage(_ loc: CLLocation) {
-        let geocoder = CLGeocoder()
-        geocoder.reverseGeocodeLocation(loc) { placemarks, error in
-            let address = placemarks?.first?.name ?? "未知地点"
-            DispatchQueue.main.async {
-                viewModel?.sendMessage(type: "location", text: nil, imageData: nil, latitude: loc.coordinate.latitude, longitude: loc.coordinate.longitude, locationName: address)
-            }
-        }
-    }
-    
     private func scrollToBottom(proxy: ScrollViewProxy) {
         if let lastId = messages.last?.id {
             withAnimation(.easeOut(duration: 0.25)) {
@@ -300,7 +290,7 @@ struct ChatDetailView: View {
                 let asset = result.asset
                 if asset.mediaType == .video {
                     if let thumbData = result.image.jpegData(compressionQuality: 0.6) {
-                        self.handleVideoSelection(asset: asset, thumbnailData: thumbData)
+                        self.viewModel?.handleVideoSelection(asset: asset, thumbnailData: thumbData)
                     }
                 } else {
                     if let data = result.image.jpegData(compressionQuality: 0.8) {
@@ -316,26 +306,10 @@ struct ChatDetailView: View {
         picker.showPhotoLibrary(sender: rootVC)
     }
 
-    private func handleVideoSelection(asset: PHAsset, thumbnailData: Data) {
-        let options = PHVideoRequestOptions()
-        options.deliveryMode = .highQualityFormat
-        options.isNetworkAccessAllowed = true
-        
-        PHImageManager.default().requestAVAsset(forVideo: asset, options: options) { (avAsset, _, _) in
-            guard let urlAsset = avAsset as? AVURLAsset else { return }
-            let videoURL = urlAsset.url
-            
-            MediaService.shared.compressVideo(inputURL: videoURL) { compressedData in
-                guard let data = compressedData else { return }
-                DispatchQueue.main.async {
-                    self.viewModel?.sendMessage(type: "video", imageData: thumbnailData, videoData: data)
-                }
-            }
-        }
-    }
-    
     private func playVideo(msg: Message) {
+        
         guard let videoData = msg.videoData else { return }
+        
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("temp_video.mp4")
         try? videoData.write(to: tempURL)
         

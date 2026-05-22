@@ -9,6 +9,8 @@ import SwiftUI
 import Combine
 import SwiftData
 import CoreLocation
+import Photos
+import AVFoundation
 
 @Observable
 class ChatViewModel {
@@ -18,6 +20,38 @@ class ChatViewModel {
     init(modelContext: ModelContext, chat: ChatSummary) {
         self.modelContext = modelContext
         self.currentChat = chat
+    }
+    
+    // MARK: - 视频处理逻辑
+    /// 处理视频选择、请求资产并压缩发送
+    func handleVideoSelection(asset: PHAsset, thumbnailData: Data) {
+        let options = PHVideoRequestOptions()
+        options.deliveryMode = .highQualityFormat
+        options.isNetworkAccessAllowed = true
+        
+        PHImageManager.default().requestAVAsset(forVideo: asset, options: options) { (avAsset, _, _) in
+            guard let urlAsset = avAsset as? AVURLAsset else { return }
+            let videoURL = urlAsset.url
+            
+            MediaService.shared.compressVideo(inputURL: videoURL) { compressedData in
+                guard let data = compressedData else { return }
+                DispatchQueue.main.async {
+                    self.sendMessage(type: "video", imageData: thumbnailData, videoData: data)
+                }
+            }
+        }
+    }
+    
+    // MARK: - 位置处理逻辑
+    /// 处理位置消息，逆地理编码并发送
+    func sendLocationMessage(_ loc: CLLocation) {
+        let geocoder = CLGeocoder()
+        geocoder.reverseGeocodeLocation(loc) { placemarks, error in
+            let address = placemarks?.first?.name ?? "未知地点"
+            DispatchQueue.main.async {
+                self.sendMessage(type: "location", text: nil, imageData: nil, latitude: loc.coordinate.latitude, longitude: loc.coordinate.longitude, locationName: address)
+            }
+        }
     }
     
     // MARK: - 统一发送入口
@@ -155,9 +189,9 @@ class ChatViewModel {
     }
     
     private func formatTime(_ date: Date) -> String {
-            let formatter = DateFormatter()
-         formatter.dateFormat = "HH:mm"
-         return formatter.string(from: date)
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: date)
     }
     
     func saveVideoToCache(data: Data) -> String? {
