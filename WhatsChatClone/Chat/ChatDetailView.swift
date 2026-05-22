@@ -96,22 +96,16 @@ struct ChatDetailView: View {
                     .transition(.opacity.animation(.easeInOut(duration: 0.15))) // 丝滑淡入淡出
             }
         }
+        ///导航栏按钮组
         .applyChatNavigationConfiguration(name: chat.name, trailingToolbar: chatTrailingToolbar())
+        //全屏弹窗与遮罩
+        .applyChatOverlays(
+            previewMessage: $previewMessage,
+            activeCallType: $activeCallType,
+            selectedLocationMessage: $selectedLocationMessage
+        )
         .safeAreaInset(edge: .bottom) {
             bottomToolBar
-        }
-        // 全屏图片预览
-        .fullScreenCover(item: $previewMessage) { message in
-            if let data = message.imageData, let uiImage = UIImage(data: data) {
-                ImageDetailView(image: uiImage)
-            }
-        }
-        .fullScreenCover(item: $activeCallType) { callType in
-            // 这里是未来我们高仿的全屏通话大界面，现在先放一个临时占位，确保链路畅通
-            MockCallOverlayView(callType: callType) { duration in
-                // 这里是挂断后的回调，未来在这里落盘 SwiftData 数据库
-                print("通话结束，时长：\(duration)秒")
-            }
         }
         // 键盘与系统回调监听
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
@@ -146,9 +140,6 @@ struct ChatDetailView: View {
                 chat.unreadCount = 0
                 try? modelContext.save()
             }
-        }
-        .fullScreenCover(item: $selectedLocationMessage) { msg in
-            LocationFullScreenView(msg: msg)
         }
     }
     
@@ -293,6 +284,28 @@ extension View {
             .toolbarBackground(Color(UIColor.systemGroupedBackground), for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarColorScheme(.light, for: .navigationBar)
+    }
+    
+    /// 封装聊天页面的全屏弹窗与遮罩
+    func applyChatOverlays(
+        previewMessage: Binding<Message?>,
+        activeCallType: Binding<CallType?>,
+        selectedLocationMessage: Binding<Message?>
+    ) -> some View {
+        self
+            .fullScreenCover(item: previewMessage) { message in
+                if let data = message.imageData, let uiImage = UIImage(data: data) {
+                    ImageDetailView(image: uiImage)
+                }
+            }
+            .fullScreenCover(item: activeCallType) { callType in
+                MockCallOverlayView(callType: callType) { duration in
+                    print("通话结束，时长：\(duration)秒")
+                }
+            }
+            .fullScreenCover(item: selectedLocationMessage) { msg in
+                LocationFullScreenView(msg: msg)
+            }
     }
 }
 
