@@ -104,42 +104,18 @@ struct ChatDetailView: View {
             activeCallType: $activeCallType,
             selectedLocationMessage: $selectedLocationMessage
         )
+        .setupChatBusinessLogic(
+            isInputFocused: $isInputFocused,
+            isShowingAttachment: $isShowingAttachment,
+            keyboardHeight: $keyboardHeight,
+            scrollTrigger: $scrollTrigger,
+            locationManager: locationManager,
+            viewModel: $viewModel,
+            chat: chat,
+            modelContext: modelContext
+        )
         .safeAreaInset(edge: .bottom) {
             bottomToolBar
-        }
-        // 键盘与系统回调监听
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
-            if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
-                withAnimation(.easeOut(duration: 0.25)) {
-                    keyboardHeight = keyboardFrame.height
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.26) {
-                    scrollTrigger += 1
-                }
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-            withAnimation(.easeOut(duration: 0.25)) {
-                keyboardHeight = 0
-            }
-        }
-        .onChange(of: isInputFocused) { _, newValue in
-            if newValue { withAnimation { isShowingAttachment = false } }
-        }
-        .onChange(of: locationManager.location) { _, newLoc in
-            if let loc = newLoc {
-                viewModel?.sendLocationMessage(loc)
-            }
-        }
-        .onAppear {
-            if viewModel == nil {
-                print("DEBUG: ViewModel 已成功初始化")
-                viewModel = ChatViewModel(modelContext: modelContext, chat: chat)
-            }
-            if chat.unreadCount > 0 {
-                chat.unreadCount = 0
-                try? modelContext.save()
-            }
         }
     }
     
@@ -305,6 +281,56 @@ extension View {
             }
             .fullScreenCover(item: selectedLocationMessage) { msg in
                 LocationFullScreenView(msg: msg)
+            }
+    }
+    
+    /// 封装聊天页面的业务逻辑监听
+    func setupChatBusinessLogic(
+        isInputFocused: FocusState<Bool>.Binding,
+        isShowingAttachment: Binding<Bool>,
+        keyboardHeight: Binding<CGFloat>,
+        scrollTrigger: Binding<Int>,
+        locationManager: LocationManager,
+        viewModel: Binding<ChatViewModel?>,
+        chat: ChatSummary,
+        modelContext: ModelContext
+    ) -> some View {
+        self
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
+                if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+                    withAnimation(.easeOut(duration: 0.25)) {
+                        keyboardHeight.wrappedValue = keyboardFrame.height
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.26) {
+                        scrollTrigger.wrappedValue += 1
+                    }
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                withAnimation(.easeOut(duration: 0.25)) {
+                    keyboardHeight.wrappedValue = 0
+                }
+            }
+            .onChange(of: isInputFocused.wrappedValue) { _, newValue in
+                if newValue {
+                    withAnimation {
+                        isShowingAttachment.wrappedValue = false
+                    }
+                }
+            }
+            .onChange(of: locationManager.location) { _, newLoc in
+                if let loc = newLoc {
+                    viewModel.wrappedValue?.sendLocationMessage(loc)
+                }
+            }
+            .onAppear {
+                if viewModel.wrappedValue == nil {
+                    viewModel.wrappedValue = ChatViewModel(modelContext: modelContext, chat: chat)
+                }
+                if chat.unreadCount > 0 {
+                    chat.unreadCount = 0
+                    try? modelContext.save()
+                }
             }
     }
 }
