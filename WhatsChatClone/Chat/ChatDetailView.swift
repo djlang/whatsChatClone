@@ -96,14 +96,7 @@ struct ChatDetailView: View {
                     .transition(.opacity.animation(.easeInOut(duration: 0.15))) // 丝滑淡入淡出
             }
         }
-        .navigationTitle(chat.name)
-        .navigationBarTitleDisplayMode(.inline)
-        // ---- 添加以下 toolbar 代码 ----
-        .toolbar(content: chatTrailingToolbar)
-        .toolbar(.hidden, for: .tabBar)
-        .toolbarBackground(keyboardLikeBackground, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
-        .toolbarColorScheme(.light, for: .navigationBar)
+        .applyChatNavigationConfiguration(name: chat.name, trailingToolbar: chatTrailingToolbar())
         .safeAreaInset(edge: .bottom) {
             bottomToolBar
         }
@@ -288,6 +281,20 @@ struct ChatDetailView: View {
 }
 
 
+
+extension View {
+    /// 封装聊天页面的导航栏与工具栏配置
+    func applyChatNavigationConfiguration(name: String, trailingToolbar: some ToolbarContent) -> some View {
+        self
+            .navigationTitle(name)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { trailingToolbar }
+            .toolbar(.hidden, for: .tabBar)
+            .toolbarBackground(Color(UIColor.systemGroupedBackground), for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.light, for: .navigationBar)
+    }
+}
 
 extension ChatDetailView {
     
