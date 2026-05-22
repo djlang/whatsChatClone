@@ -35,7 +35,7 @@ struct VoiceRecordingOverlayView: View {
                     }
                     .frame(height: 50) // 限制最大高度
                 }
-                .frame(width: 160, height: 100)
+                .frame(width: 200, height: 70)
                 // 如果用户滑动到了取消区域，气泡变红，否则是绿色
                 .background(isCancelled ? Color.red.opacity(0.8) : Color(red: 0.1, green: 0.75, blue: 0.45))
                 .cornerRadius(18)
