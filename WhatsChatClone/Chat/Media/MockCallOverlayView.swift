@@ -21,15 +21,20 @@ struct MockCallOverlayView: View {
     
     @State private var isMuted = false
     @State private var isSpeakerOn = false
+    @State private var isVideoOff = false
     
     var body: some View {
         ZStack {
             // 背景层
             if callType == .video {
                 // 视频通话：显示前置摄像头预览
-                CameraPreview(session: cameraManager.session)
-                    .ignoresSafeArea()
-                    .background(Color.black)
+                if isVideoOff {
+                    Color.black.ignoresSafeArea()
+                } else {
+                    CameraPreview(session: cameraManager.session)
+                        .ignoresSafeArea()
+                        .background(Color.black)
+                }
             } else {
                 // 语音通话：显示灰色背景
                 Color(UIColor.darkGray)
@@ -75,63 +80,21 @@ struct MockCallOverlayView: View {
                 Spacer()
                 
                 // 控制核心
-                HStack(spacing: 40) {
-                    // 麦克风开关
-                    Button(action: { isMuted.toggle() }) {
-                        VStack(spacing: 8) {
-                            Circle()
-                                .fill(isMuted ? Color.white : Color.white.opacity(0.2))
-                                .frame(width: 72, height: 72)
-                                .overlay(
-                                    Image(systemName: isMuted ? "mic.slash.fill" : "mic.fill")
-                                        .font(.title2)
-                                        .foregroundColor(isMuted ? .black : .white)
-                                )
-                            Text("静音")
-                                .font(.caption)
-                                .foregroundColor(.white)
-                        }
-                    }
-                    
-                    // 挂断按钮
-                    Button(action: {
+                CallControlsView(
+                    callType: callType,
+                    isMuted: $isMuted,
+                    isSpeakerOn: $isSpeakerOn,
+                    isVideoOff: $isVideoOff,
+                    onHangup: {
                         timer?.invalidate()
                         cameraManager.stopSession()
                         onDismiss(callDuration)
-                        dismiss() // 退出全屏
-                    }) {
-                        VStack(spacing: 8) {
-                            Circle()
-                                .fill(Color.red)
-                                .frame(width: 72, height: 72)
-                                .overlay(
-                                    Image(systemName: "phone.down.fill")
-                                        .font(.title)
-                                        .foregroundColor(.white)
-                                )
-                            Text("挂断")
-                                .font(.caption)
-                                .foregroundColor(.white)
-                        }
+                        dismiss()
+                    },
+                    onFlipCamera: {
+                        cameraManager.switchCamera()
                     }
-                    
-                    // 外放开关
-                    Button(action: { isSpeakerOn.toggle() }) {
-                        VStack(spacing: 8) {
-                            Circle()
-                                .fill(isSpeakerOn ? Color.white : Color.white.opacity(0.2))
-                                .frame(width: 72, height: 72)
-                                .overlay(
-                                    Image(systemName: isSpeakerOn ? "speaker.wave.3.fill" : "speaker.wave.1.fill")
-                                        .font(.title2)
-                                        .foregroundColor(isSpeakerOn ? .black : .white)
-                                )
-                            Text("外放")
-                                .font(.caption)
-                                .foregroundColor(.white)
-                        }
-                    }
-                }
+                )
                 .padding(.bottom, 50)
             }
         }

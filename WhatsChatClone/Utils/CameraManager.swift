@@ -62,6 +62,35 @@ class CameraManager: NSObject, ObservableObject {
             session.stopRunning()
         }
     }
+    
+    func switchCamera() {
+        session.beginConfiguration()
+        
+        guard let currentInput = session.inputs.first as? AVCaptureDeviceInput else { return }
+        session.removeInput(currentInput)
+        
+        let newPosition: AVCaptureDevice.Position = currentInput.device.position == .front ? .back : .front
+        
+        guard let newDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: newPosition) else {
+            // 如果切不回来，尝试还原
+            session.addInput(currentInput)
+            session.commitConfiguration()
+            return
+        }
+        
+        do {
+            let newInput = try AVCaptureDeviceInput(device: newDevice)
+            if session.canAddInput(newInput) {
+                session.addInput(newInput)
+            } else {
+                session.addInput(currentInput)
+            }
+        } catch {
+            session.addInput(currentInput)
+        }
+        
+        session.commitConfiguration()
+    }
 }
 
 /// 专门用于显示摄像头预览的 UIView 子类，能自动处理布局变化
