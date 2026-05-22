@@ -103,7 +103,12 @@ struct ChatDetailView: View {
             previewMessage: $previewMessage,
             activeCallType: $activeCallType,
             selectedLocationMessage: $selectedLocationMessage,
-            chatName: chat.name
+            chatName: chat.name,
+            onCallEnd: { type, duration in
+                let durationStr = formatCallDuration(duration)
+                let content = "\(type.rawValue)，时长：\(durationStr)"
+                viewModel?.sendMessage(type: "text", text: content)
+            }
         )
         .setupChatBusinessLogic(
             isInputFocused: $isInputFocused,
@@ -231,6 +236,16 @@ struct ChatDetailView: View {
         MediaService.shared.saveToGallery(msg: msg)
     }
     
+    private func formatCallDuration(_ seconds: TimeInterval) -> String {
+        let s = Int(seconds) % 60
+        let m = Int(seconds) / 60
+        if m > 0 {
+            return "\(m)分\(s)秒"
+        } else {
+            return "\(s)秒"
+        }
+    }
+    
     private func deleteMessage(_ msg: Message) {
         let summary = msg.chatSummary
         modelContext.delete(msg)
@@ -268,7 +283,8 @@ extension View {
         previewMessage: Binding<Message?>,
         activeCallType: Binding<CallType?>,
         selectedLocationMessage: Binding<Message?>,
-        chatName: String
+        chatName: String,
+        onCallEnd: @escaping (CallType, TimeInterval) -> Void
     ) -> some View {
         self
             .fullScreenCover(item: previewMessage) { message in
@@ -278,7 +294,7 @@ extension View {
             }
             .fullScreenCover(item: activeCallType) { callType in
                 MockCallOverlayView(callType: callType, chatName: chatName) { duration in
-                    print("通话结束，时长：\(duration)秒")
+                    onCallEnd(callType, duration)
                 }
             }
             .fullScreenCover(item: selectedLocationMessage) { msg in
