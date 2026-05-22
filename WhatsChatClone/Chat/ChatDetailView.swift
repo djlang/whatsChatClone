@@ -115,6 +115,8 @@ struct ChatDetailView: View {
             isShowingAttachment: $isShowingAttachment,
             keyboardHeight: $keyboardHeight,
             scrollTrigger: $scrollTrigger,
+            activeCallType: $activeCallType,
+            audioPlayerManager: audioPlayerManager,
             locationManager: locationManager,
             viewModel: $viewModel,
             chat: chat,
@@ -308,6 +310,8 @@ extension View {
         isShowingAttachment: Binding<Bool>,
         keyboardHeight: Binding<CGFloat>,
         scrollTrigger: Binding<Int>,
+        activeCallType: Binding<CallType?>,
+        audioPlayerManager: AudioPlayerManager,
         locationManager: LocationManager,
         viewModel: Binding<ChatViewModel?>,
         chat: ChatSummary,
@@ -334,6 +338,12 @@ extension View {
                     withAnimation {
                         isShowingAttachment.wrappedValue = false
                     }
+                }
+            }
+            .onChange(of: activeCallType.wrappedValue) { _, newValue in
+                if newValue != nil {
+                    // 只要通话界面准备弹出，就停止当前消息播放
+                    audioPlayerManager.stopPlaying()
                 }
             }
             .onChange(of: locationManager.location) { _, newLoc in
