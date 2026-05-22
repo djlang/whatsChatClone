@@ -91,34 +91,7 @@ struct ChatDetailView: View {
         .navigationTitle(chat.name)
         .navigationBarTitleDisplayMode(.inline)
         // ---- 添加以下 toolbar 代码 ----
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Menu {
-                    Button(action: {
-                        activeCallType = .audio
-                    }) {
-                        Label("语音通话", systemImage: "phone")
-                    }
-                    
-                    Button(action: {
-                        activeCallType = .video
-                    }) {
-                        Label("视频通话", systemImage: "video")
-                    }
-                } label: {
-                    // 拼接电话图标与向下箭头，对齐原生 WhatsApp 质感
-                    HStack(spacing: 3) {
-                        Image(systemName: "phone")
-                            .font(.system(size: 16, weight: .medium))
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 10, weight: .bold))
-                    }
-                    .foregroundColor(.primary) // 让图标颜色契合导航栏主题
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                }
-            }
-        }
+        .toolbar(content: chatTrailingToolbar)
         .toolbar(.hidden, for: .tabBar)
         .toolbarBackground(keyboardLikeBackground, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
@@ -414,5 +387,32 @@ struct ChatDetailView: View {
 
     private func isSameDay(date1: Date, date2: Date) -> Bool {
         Calendar.current.isDate(date1, inSameDayAs: date2)
+    }
+}
+
+
+
+extension ChatDetailView {
+    
+    // 💡 抽离导航栏按钮组
+    @ToolbarContentBuilder
+    private func chatTrailingToolbar() -> some ToolbarContent {
+        ToolbarItem(placement: .navigationBarTrailing) {
+            Menu {
+                Button(action: { activeCallType = .audio }) {
+                    Label("语音通话", systemImage: "phone")
+                }
+                Button(action: { activeCallType = .video }) {
+                    Label("视频通话", systemImage: "video")
+                }
+            } label: {
+                HStack(spacing: 2) {
+                    Image(systemName: "phone").font(.system(size: 16, weight: .medium))
+                    Image(systemName: "chevron.down").font(.system(size: 9, weight: .bold)).foregroundColor(.gray)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+            }
+        }
     }
 }

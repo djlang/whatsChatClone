@@ -10,7 +10,7 @@ import SwiftUI
 struct MockCallOverlayView: View {
     let callType: CallType
     var onDismiss: (TimeInterval) -> Void
-    let chatName: String // 💡 新增：接收对话人名称
+//    let chatName: String // 💡 新增：接收对话人名称
     
     @Environment(\.dismiss) private var dismiss
     @State private var callDuration: TimeInterval = 0
