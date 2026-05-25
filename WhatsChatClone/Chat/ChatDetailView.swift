@@ -98,6 +98,9 @@ struct ChatDetailView: View {
                 let durationStr = self.formatCallDuration(duration)
                 let content = "\(type.rawValue)，时长：\(durationStr)"
                 self.viewModel?.sendMessage(type: "text", text: content)
+                //挂断时，将通话记录存入 SwiftData
+                self.viewModel?.sendCallMessage(type: activeCallType == .audio ? "call_audio" : "call_video", duration: duration)
+                
             }
         )
         .setupChatBusinessLogic(
@@ -287,6 +290,7 @@ extension View {
             .fullScreenCover(item: activeCallType) { callType in
                 MockCallOverlayView(callType: callType, chatName: chatName) { duration in
                     onCallEnd(callType, duration)
+                    
                 }
             }
             .fullScreenCover(item: selectedLocationMessage) { msg in

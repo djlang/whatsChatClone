@@ -207,5 +207,33 @@ class ChatViewModel {
             return nil
         }
     }
+    
+    
+    
+    /// 插入一条音视频通话历史记录
+    func sendCallMessage(type: String, duration: TimeInterval) {
+        let now = Date()
+        let timeString = formatTime(now)
+        
+        // 1. 创建特殊通话消息模型（假设你已经扩展了字段）
+        let callMessage = Message(
+            text: type == "audio" ? "语音通话" : "视频通话",
+            time: timeString,
+            isFromMe: true,
+            timestamp: now,
+            messageType: type == "audio" ? "call_audio" : "call_video"
+        )
+        // 存储时长（秒）
+        callMessage.voiceDuration = duration // 借用或使用专用的 callDuration 字段
+        
+        // 2. 关联并持久化
+        currentChat.messages?.append(callMessage)
+        
+        // 3. 更新会话摘要显示
+        currentChat.lastMessage = type == "audio" ? "[语音通话]" : "[视频通话]"
+        currentChat.lastTimestamp = now
+        
+        save()
+    }
 }
 

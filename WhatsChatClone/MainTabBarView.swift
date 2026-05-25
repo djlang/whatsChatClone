@@ -9,7 +9,8 @@ struct MainTabBarView: View {
     var body: some View {
         TabView {
             Text("Status View").tabItem { Label("状态", systemImage: "circle.dashed") }
-            Text("Calls View").tabItem { Label("通话", systemImage: "phone") }
+//            Text("Calls View").tabItem { Label("通话", systemImage: "phone") }
+            CallHistoryListView().tabItem { Label("通话", systemImage: "phone") }
             
             // 这是我们要重点做的模块
             ChatListView().tabItem { Label("聊天", systemImage: "message.fill") }
