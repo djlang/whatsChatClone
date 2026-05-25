@@ -4,16 +4,6 @@ import ZLPhotoBrowser
 import PhotosUI
 import AVKit
 
-
-/// 通话类型枚举
-enum CallType: String, Identifiable {
-    case audio = "语音通话"
-    case video = "视频通话"
-    
-    // 实现 Identifiable 协议，方便 fullScreenCover 监听
-    var id: String { self.rawValue }
-}
-
 struct ChatDetailView: View {
     @StateObject private var locationManager = LocationManager()
     @StateObject private var audioPlayerManager = AudioPlayerManager()
@@ -83,9 +73,9 @@ struct ChatDetailView: View {
                     audioPlayerManager: audioPlayerManager,
                     previewMessage: $previewMessage,
                     scrollTrigger: $scrollTrigger,
-                    onDismissInput: { dismissInput() },
-                    onDeleteMessage: { deleteMessage($0) },
-                    onPlayVideo: { playVideo(msg: $0) }
+                    onDismissInput: { self.dismissInput() },
+                    onDeleteMessage: { self.deleteMessage($0) },
+                    onPlayVideo: { self.playVideo(msg: $0) }
                 )
             }
             
@@ -105,9 +95,9 @@ struct ChatDetailView: View {
             selectedLocationMessage: $selectedLocationMessage,
             chatName: chat.name,
             onCallEnd: { type, duration in
-                let durationStr = formatCallDuration(duration)
+                let durationStr = self.formatCallDuration(duration)
                 let content = "\(type.rawValue)，时长：\(durationStr)"
-                viewModel?.sendMessage(type: "text", text: content)
+                self.viewModel?.sendMessage(type: "text", text: content)
             }
         )
         .setupChatBusinessLogic(
@@ -135,24 +125,24 @@ struct ChatDetailView: View {
                 isVoiceMode: $isVoiceMode,
                 isInputFocused: $isInputFocused,
                 onToggleAttachment: {
-                    toggleAttachment()
+                    self.toggleAttachment()
                 },
                 onSendMessage: {
-                    viewModel?.sendMessage(type: "text", text: inputText)
-                    inputText = ""
+                    self.viewModel?.sendMessage(type: "text", text: self.inputText)
+                    self.inputText = ""
                 },
                 onToggleVoiceMode: {
                     withAnimation(.spring(response: 0.3)) {
-                        isVoiceMode.toggle()
-                        if isVoiceMode {
-                            dismissInput()
+                        self.isVoiceMode.toggle()
+                        if self.isVoiceMode {
+                            self.dismissInput()
                         } else {
-                            isInputFocused = true
+                            self.isInputFocused = true
                         }
                     }
                 },
                 onRecordComplete: { data, duration in
-                    viewModel?.sendMessage(type: "voice", voiceData: data, voiceDuration: duration)
+                    self.viewModel?.sendMessage(type: "voice", voiceData: data, voiceDuration: duration)
                 },
                 isRecordingVoice: $isRecordingVoice,
                 isRecordingCancelled: $isRecordingCancelled,
@@ -169,9 +159,9 @@ struct ChatDetailView: View {
                     },
                     onTriggerLocation: {
                         withAnimation {
-                            isShowingAttachment = false
+                            self.isShowingAttachment = false
                         }
-                        locationManager.requestLocation()
+                        self.locationManager.requestLocation()
                     }
                 )
                 .frame(height: 250)
@@ -370,10 +360,10 @@ extension ChatDetailView {
     private func chatTrailingToolbar() -> some ToolbarContent {
         ToolbarItem(placement: .navigationBarTrailing) {
             Menu {
-                Button(action: { activeCallType = .audio }) {
+                Button(action: { self.activeCallType = .audio }) {
                     Label("语音通话", systemImage: "phone")
                 }
-                Button(action: { activeCallType = .video }) {
+                Button(action: { self.activeCallType = .video }) {
                     Label("视频通话", systemImage: "video")
                 }
             } label: {

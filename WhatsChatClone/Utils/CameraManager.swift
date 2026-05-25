@@ -7,6 +7,10 @@ class CameraManager: NSObject, ObservableObject {
     @Published var session = AVCaptureSession()
     @Published var permissionStatus: AVAuthorizationStatus = .notDetermined
     
+    // 计时器相关
+    @Published var callDuration: TimeInterval = 0
+    private var timer: Timer?
+    
     func setupCamera() {
         let status = AVCaptureDevice.authorizationStatus(for: .video)
         
@@ -28,11 +32,8 @@ class CameraManager: NSObject, ObservableObject {
     
     private func configureSession() {
         session.beginConfiguration()
-        
-        // 清理旧的输入（防止重复添加导致黑屏）
         session.inputs.forEach { session.removeInput($0) }
         
-        // 获取前置摄像头
         guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) else {
             print("无法获取前置摄像头")
             return
@@ -43,10 +44,8 @@ class CameraManager: NSObject, ObservableObject {
             if session.canAddInput(input) {
                 session.addInput(input)
             }
-            
             session.commitConfiguration()
             
-            // 在后台线程启动 session
             if !session.isRunning {
                 DispatchQueue.global(qos: .userInitiated).async {
                     self.session.startRunning()
@@ -57,7 +56,22 @@ class CameraManager: NSObject, ObservableObject {
         }
     }
     
+    func startTimer() {
+        timer?.invalidate()
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            DispatchQueue.main.async {
+                self?.callDuration += 1
+            }
+        }
+    }
+    
+    func stopTimer() {
+        timer?.invalidate()
+        timer = nil
+    }
+    
     func stopSession() {
+        stopTimer()
         if session.isRunning {
             session.stopRunning()
         }
@@ -65,14 +79,11 @@ class CameraManager: NSObject, ObservableObject {
     
     func switchCamera() {
         session.beginConfiguration()
-        
         guard let currentInput = session.inputs.first as? AVCaptureDeviceInput else { return }
         session.removeInput(currentInput)
         
         let newPosition: AVCaptureDevice.Position = currentInput.device.position == .front ? .back : .front
-        
         guard let newDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: newPosition) else {
-            // 如果切不回来，尝试还原
             session.addInput(currentInput)
             session.commitConfiguration()
             return
@@ -88,7 +99,6 @@ class CameraManager: NSObject, ObservableObject {
         } catch {
             session.addInput(currentInput)
         }
-        
         session.commitConfiguration()
     }
 }
@@ -120,7 +130,6 @@ struct CameraPreview: UIViewRepresentable {
     }
     
     func updateUIView(_ uiView: VideoPreviewView, context: Context) {
-        // 如果 session 发生变化，可以在这里更新
         if uiView.videoPreviewLayer.session != session {
             uiView.setSession(session)
         }

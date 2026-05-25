@@ -23,15 +23,27 @@ struct CallControlsView: View {
         VStack(spacing: 30) {
             // 第一行：麦克风、扩音、摄像头
             HStack(spacing: 30) {
-                controlButton(icon: isMuted ? "mic.slash.fill" : "mic.fill", label: isMuted ? "麦克风已关闭" : "麦克风已开启", isActive: isMuted) {
+                controlButton(
+                    icon: isMuted ? "mic.slash.fill" : "mic.fill",
+                    label: isMuted ? "麦克风已关闭" : "麦克风已开启",
+                    isActive: isMuted
+                ) {
                     isMuted.toggle()
                 }
                 
-                controlButton(icon: isSpeakerOn ? "speaker.wave.3.fill" : "speaker.wave.1.fill", label: isSpeakerOn ? "扩音已开启" : "扩音已关闭", isActive: isSpeakerOn) {
+                controlButton(
+                    icon: isSpeakerOn ? "speaker.wave.3.fill" : "speaker.wave.1.fill",
+                    label: isSpeakerOn ? "扩音已开启" : "扩音已关闭",
+                    isActive: isSpeakerOn
+                ) {
                     isSpeakerOn.toggle()
                 }
                 
-                controlButton(icon: isVideoOff ? "video.slash.fill" : "video.fill", label: "摄像头", isActive: isVideoOff) {
+                controlButton(
+                    icon: isVideoOff ? "video.slash.fill" : "video.fill",
+                    label: "摄像头",
+                    isActive: isVideoOff
+                ) {
                     isVideoOff.toggle()
                 }
             }
@@ -55,13 +67,21 @@ struct CallControlsView: View {
     // MARK: - 语音通话布局 (单行)
     private var audioControls: some View {
         HStack(spacing: 40) {
-            controlButton(icon: isMuted ? "mic.slash.fill" : "mic.fill", label: isMuted ? "麦克风已关闭" : "麦克风已开启", isActive: isMuted) {
+            controlButton(
+                icon: isMuted ? "mic.slash.fill" : "mic.fill",
+                label: isMuted ? "麦克风已关闭" : "麦克风已开启",
+                isActive: isMuted
+            ) {
                 isMuted.toggle()
             }
             
             hangupButton()
             
-            controlButton(icon: isSpeakerOn ? "speaker.wave.3.fill" : "speaker.wave.1.fill", label: isSpeakerOn ? "扩音已开启" : "扩音已关闭", isActive: isSpeakerOn) {
+            controlButton(
+                icon: isSpeakerOn ? "speaker.wave.3.fill" : "speaker.wave.1.fill",
+                label: isSpeakerOn ? "扩音已开启" : "扩音已关闭",
+                isActive: isSpeakerOn
+            ) {
                 isSpeakerOn.toggle()
             }
         }

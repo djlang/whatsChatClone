@@ -7,6 +7,12 @@
 
 import SwiftUI
 import Combine
+import AVFoundation
+
+enum CallState {
+    case dialing
+    case connected
+}
 
 struct MockCallOverlayView: View {
     let callType: CallType
@@ -16,8 +22,7 @@ struct MockCallOverlayView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var cameraManager = CameraManager()
     
-    @State private var callDuration: TimeInterval = 0
-    @State private var timer: Timer? = nil
+    @State private var callState: CallState = .dialing
     
     @State private var isMuted = false
     @State private var isSpeakerOn = false
@@ -35,6 +40,8 @@ struct MockCallOverlayView: View {
                         .ignoresSafeArea()
                         .background(Color.black)
                 }
+                
+                
             } else {
                 // 语音通话：显示灰色背景
                 Color(UIColor.darkGray)
@@ -64,53 +71,72 @@ struct MockCallOverlayView: View {
                         .foregroundColor(.white)
                         .shadow(radius: callType == .video ? 5 : 0)
                     
-                    Text(callType == .audio ? "语音通话中..." : "视频通话中...")
+                    Text(callStatusText)
                         .font(.title2)
                         .bold()
                         .foregroundColor(.white)
                         .shadow(radius: callType == .video ? 5 : 0)
                     
-                    // 计时器显示
-                    Text(formatDuration(callDuration))
-                        .font(.system(.body, design: .monospaced))
-                        .foregroundColor(.white.opacity(0.7))
-                        .shadow(radius: callType == .video ? 5 : 0)
+                    // 计时器显示：仅接通后显示
+                    if callState == .connected {
+                        Text(formatDuration(cameraManager.callDuration))
+                            .font(.system(.body, design: .monospaced))
+                            .foregroundColor(.white.opacity(0.7))
+                            .shadow(radius: callType == .video ? 5 : 0)
+                            .transition(.opacity)
+                    }
                 }
                 
                 Spacer()
                 
                 // 控制核心
                 CallControlsView(
-                    callType: callType,
+                    callType: self.callType,
                     isMuted: $isMuted,
                     isSpeakerOn: $isSpeakerOn,
                     isVideoOff: $isVideoOff,
                     onHangup: {
-                        timer?.invalidate()
-                        cameraManager.stopSession()
-                        onDismiss(callDuration)
-                        dismiss()
+                        self.cameraManager.stopSession()
+                        self.onDismiss(self.cameraManager.callDuration)
+                        self.dismiss()
                     },
                     onFlipCamera: {
-                        cameraManager.switchCamera()
+                        self.cameraManager.switchCamera()
                     }
                 )
                 .padding(.bottom, 50)
             }
         }
         .onAppear {
-            // 通话开始，启动计时器
-            timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-                callDuration += 1
-            }
-            
-            // 如果是视频通话，初始化摄像头
-            if callType == .video {
-                cameraManager.setupCamera()
-            }
+            self.startCallFlow()
         }
         .onDisappear {
-            cameraManager.stopSession()
+            self.cameraManager.stopSession()
+        }
+    }
+    
+    private var callStatusText: String {
+        if callState == .dialing {
+            return "等待对方接受邀请"
+        } else {
+            return callType == .audio ? "语音通话中..." : "视频通话中..."
+        }
+    }
+    
+    private func startCallFlow() {
+        // 如果是视频通话，立即开启摄像头（在拨号阶段就显示预览）
+        if self.callType == .video {
+            self.cameraManager.setupCamera()
+        }
+
+        // 模拟 3 秒后接通
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            withAnimation(.easeInOut) {
+                self.callState = .connected
+            }
+            
+            // 启动计时器
+            self.cameraManager.startTimer()
         }
     }
     
