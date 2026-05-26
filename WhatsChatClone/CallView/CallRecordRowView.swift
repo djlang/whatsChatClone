@@ -9,7 +9,8 @@ import SwiftUI
 
 struct CallRecordRowView: View {
     let record: CallRecord // 上面定义的 CallRecord 模型
-    
+    //回拨
+    var onCallTriggered: (ChatSummary, CallType) -> Void
     var body: some View {
         HStack(spacing: 15) {
             // 1. 头像
@@ -20,9 +21,18 @@ struct CallRecordRowView: View {
             
             // 2. 文本信息
             VStack(alignment: .leading, spacing: 4) {
-                Text(record.chatName)
-                    .font(.body)
-                    .fontWeight(.medium)
+                HStack {
+                    Text(record.chat.name)
+                        .font(.body)
+                        .fontWeight(.medium)
+                    
+                    if record.count > 1 {
+                        Text("(\(record.count))")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                    }
+                }
+                
                 
                 HStack(spacing: 5) {
                     // 呼入呼出箭头标识
@@ -45,11 +55,36 @@ struct CallRecordRowView: View {
             Spacer()
             
             // 3. 右侧回拨动作按钮
-            Image(systemName: record.callType == "call_audio" ? "phone" : "video")
-                .foregroundColor(.accentColor)
-                .font(.title3)
+            HStack(spacing: 4) {
+                // 按钮 A：一键语音回拨
+                Button(action: {
+                    onCallTriggered(record.chat, .audio)
+                }) {
+                    Image(systemName: "phone")
+                        .font(.title3)
+                        .foregroundColor(.accentColor)
+                        .frame(width: 40, height: 40) // 独立且精准的点击热区
+                }
+                .buttonStyle(.plain)
+                // 按钮 B：一键视频回拨
+                Button(action: {
+                    onCallTriggered(record.chat, .video)
+                }) {
+                    Image(systemName: "video")
+                        .font(.title3)
+                        .foregroundColor(.accentColor)
+                        .frame(width: 40, height: 40) // 独立且精准的点击热区
+                }
+                .buttonStyle(.plain)
+            }
+            
         }
         .padding(.vertical, 4)
+        .contentShape(Rectangle()) // 确保整行的空白处也能响应点击
+        .onTapGesture {
+            // 暂时搁置：未来这里点击进入联系人详情页
+            print("点击了整行，准备进入 \(record.chat.name) 的详情页")
+        }
     }
     
     // 辅助时间格式化、时长格式化方法...
