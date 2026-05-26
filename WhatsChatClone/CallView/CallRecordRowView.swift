@@ -58,7 +58,8 @@ struct CallRecordRowView: View {
             HStack(spacing: 4) {
                 // 按钮 A：一键语音回拨
                 Button(action: {
-                    onCallTriggered(record.chat, .audio)
+//                    onCallTriggered(record.chat, .audio)
+                    OverlayCallManager.shared.startCall(with: record.chat, type: .audio)
                 }) {
                     Image(systemName: "phone")
                         .font(.title3)
@@ -68,7 +69,8 @@ struct CallRecordRowView: View {
                 .buttonStyle(.plain)
                 // 按钮 B：一键视频回拨
                 Button(action: {
-                    onCallTriggered(record.chat, .video)
+//                    onCallTriggered(record.chat, .video)
+                    OverlayCallManager.shared.startCall(with: record.chat, type: .video)
                 }) {
                     Image(systemName: "video")
                         .font(.title3)

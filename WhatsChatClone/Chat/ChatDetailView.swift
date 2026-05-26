@@ -91,17 +91,9 @@ struct ChatDetailView: View {
         //全屏弹窗与遮罩
         .applyChatOverlays(
             previewMessage: $previewMessage,
-            activeCallType: $activeCallType,
             selectedLocationMessage: $selectedLocationMessage,
-            chatName: chat.name,
-            onCallEnd: { type, duration in
-                let durationStr = self.formatCallDuration(duration)
-                let content = "\(type.rawValue)，时长：\(durationStr)"
-                self.viewModel?.sendMessage(type: "text", text: content)
-                //挂断时，将通话记录存入 SwiftData
-                self.viewModel?.sendCallMessage(type: activeCallType == .audio ? "call_audio" : "call_video", duration: duration)
-                
-            }
+            chatName: chat.name
+    
         )
         .setupChatBusinessLogic(
             isInputFocused: $isInputFocused,
@@ -276,21 +268,13 @@ extension View {
     /// 封装聊天页面的全屏弹窗与遮罩
     func applyChatOverlays(
         previewMessage: Binding<Message?>,
-        activeCallType: Binding<CallType?>,
         selectedLocationMessage: Binding<Message?>,
         chatName: String,
-        onCallEnd: @escaping (CallType, TimeInterval) -> Void
     ) -> some View {
         self
             .fullScreenCover(item: previewMessage) { message in
                 if let data = message.imageData, let uiImage = UIImage(data: data) {
                     ImageDetailView(image: uiImage)
-                }
-            }
-            .fullScreenCover(item: activeCallType) { callType in
-                MockCallOverlayView(callType: callType, chatName: chatName) { duration in
-                    onCallEnd(callType, duration)
-                    
                 }
             }
             .fullScreenCover(item: selectedLocationMessage) { msg in
@@ -364,10 +348,10 @@ extension ChatDetailView {
     private func chatTrailingToolbar() -> some ToolbarContent {
         ToolbarItem(placement: .navigationBarTrailing) {
             Menu {
-                Button(action: { self.activeCallType = .audio }) {
+                Button(action: { OverlayCallManager.shared.startCall(with: self.chat, type: .audio)}) {
                     Label("语音通话", systemImage: "phone")
                 }
-                Button(action: { self.activeCallType = .video }) {
+                Button(action: { OverlayCallManager.shared.startCall(with: self.chat, type: .video)}) {
                     Label("视频通话", systemImage: "video")
                 }
             } label: {

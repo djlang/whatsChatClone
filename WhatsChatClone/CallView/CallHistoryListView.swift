@@ -84,14 +84,6 @@ struct CallHistoryListView: View {
             }
             .listStyle(.grouped)
             .navigationTitle("通话")
-            .fullScreenCover(item: $currentCallContext) { context in
-                MockCallOverlayView(callType: context.type , chatName: context.chat.name) { duration in
-                    // 回拨挂断后，同样给该联系人再落盘一条通话历史
-                    // 访问到 modelContext，可以直接调用存储逻辑
-                    saveCallbackRecord(to: context.chat, type: context.type, duration: duration)
-                }
-                
-            }
             .onAppear {
                 contactManager.fetchContacts()
             }
