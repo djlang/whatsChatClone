@@ -167,7 +167,7 @@ class ChatViewModel {
         }
                     
         else {
-            replyText = ""
+            replyText = "收到消息。"
         }
         
         let replyMessage = Message(

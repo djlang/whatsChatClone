@@ -7,53 +7,82 @@
 
 import SwiftUI
 
+
 struct SettingsView: View {
     var body: some View {
         NavigationStack {
-            List {
-                // 🟢 头部：个人信息卡片
-                profileHeaderSection
-                
-                // 🟢 分组一：核心账户安全设置
-                Section {
-                    SettingsRow(icon: "key.fill", iconColor: .green, title: "账户", subtitle: "安全通知、更改号码")
-                    SettingsRow(icon: "lock.fill", iconColor: .emeraldGreen, title: "隐私", subtitle: "封锁联系人、限时消息")
-                    SettingsRow(icon: "bubble.left.fill", iconColor: .green, title: "对话", subtitle: "主题、壁纸、聊天记录")
-                }
-                
-                // 🟢 分组二：通知与存储
-                Section {
-                    SettingsRow(icon: "bell.fill", iconColor: .red, title: "通知", subtitle: "消息、群组和铃声")
-                    SettingsRow(icon: "chart.pie.fill", iconColor: .green, title: "存储空间和数据", subtitle: "网络使用情况、自动下载")
-                }
-                
-                // 🟢 分组三：社交与辅助
-                Section {
-                    SettingsRow(icon: "person.2.fill", iconColor: .green, title: "联系人", subtitle: "已保存的联系人、群组")
-                    SettingsRow(icon: "face.smiling.fill", iconColor: .teal, title: "动态", subtitle: "隐私设置、动态更新")
-                    SettingsRow(icon: "bookmark.fill", iconColor: .green, title: "收藏", subtitle: "添加、重新排序、移除")
-                }
-                
-                // 🟢 分组四：帮助
-                Section {
-                    SettingsRow(icon: "questionmark.circle.fill", iconColor: .blue, title: "帮助", subtitle: "帮助中心、联系我们、隐私政策")
-                }
-            }
-            .listStyle(.insetGrouped) // 💡 灵魂修饰符：完美复刻圆角卡片分块质感
-            .navigationTitle("设置")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { print("搜索设置") }) {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.primary)
+            // 💡 换成滚动视图，背景刷一层 WhatsApp 的淡淡底色
+            ScrollView {
+                VStack(spacing: 12) { // 🔴 这里可以直接控制每个卡片（Section）之间的上下间距
+                    
+                    // 1. 个人信息区
+                    customCard {
+                        profileHeaderView
                     }
+                    
+                    // 2. 分组一：账户安全
+                    customCard {
+                        VStack(spacing: 0) {
+                            SettingsRow(icon: "key.fill", iconColor: .green, title: "账户", subtitle: "安全通知、更改号码")
+                            customDivider
+                            SettingsRow(icon: "lock.fill", iconColor: .emeraldGreen, title: "隐私", subtitle: "封锁联系人、限时消息")
+                            customDivider
+                            SettingsRow(icon: "bubble.left.fill", iconColor: .green, title: "对话", subtitle: "主题、壁纸、聊天记录")
+                        }
+                    }
+                    
+                    // 3. 分组二：通知
+                    customCard {
+                        VStack(spacing: 0) {
+                            SettingsRow(icon: "bell.fill", iconColor: .red, title: "通知", subtitle: "消息、群组和铃声")
+                            customDivider
+                            SettingsRow(icon: "chart.pie.fill", iconColor: .green, title: "存储空间和数据", subtitle: "网络使用情况、自动下载")
+                        }
+                    }
+                    
+                    customCard {
+                        VStack(spacing: 0) {
+                            SettingsRow(icon: "person.2.fill", iconColor: .green, title: "联系人", subtitle: "已保存的联系人、群组")
+                            SettingsRow(icon: "face.smiling.fill", iconColor: .teal, title: "动态", subtitle: "隐私设置、动态更新")
+                            SettingsRow(icon: "bookmark.fill", iconColor: .green, title: "收藏", subtitle: "添加、重新排序、移除")
+                        }
+                    }
+                    
+                    customCard {
+                        VStack(spacing: 0) {
+                            SettingsRow(icon: "questionmark.circle.fill", iconColor: .blue, title: "帮助", subtitle: "帮助中心、联系我们、隐私政策")
+                        }
+                    }
+                    
+                    // 后续分组依此类推...
                 }
+                .padding(.horizontal, 16) // 控制整体卡片距离屏幕左右两边的间距
+                .padding(.top, 10)
             }
+            .background(Color(UIColor.systemGroupedBackground)) // 还原高仿灰白底色
+            .navigationTitle("设置")
+            // .toolbar { ...保持不变 }
         }
     }
     
+    // 🎨 核心：自定义卡片容器，像素级掌控弧度
+    private func customCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        content()
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12) // 控制卡片内部的上下内边距
+            .background(Color(.systemBackground)) // 卡片自身是纯白
+            .cornerRadius(10) // 🔴 像素级微调：在这里任意修改你想要的圆角弧度！
+    }
+    
+    // 🎨 自定义卡片内部的分割线
+    private var customDivider: some View {
+        Divider()
+            .padding(.leading, 43) // 让分割线和文字对齐，左侧不切断图标，完全对齐 WhatsApp 细节
+            .padding(.vertical, 8)
+    }
+    
     // MARK: - 个人信息卡片组件
-    private var profileHeaderSection: some View {
+    private var profileHeaderView: some View {
         Section {
             HStack(spacing: 15) {
                 // 1. 头像
@@ -89,42 +118,9 @@ struct SettingsView: View {
             .padding(.vertical, 4)
         }
     }
+
 }
 
-// MARK: - 通用设置行组件
-struct SettingsRow: View {
-    let icon: String
-    let iconColor: Color
-    let title: String
-    let subtitle: String
-    
-    var body: some View {
-        HStack(spacing: 15) {
-            // 左侧精美图标背景
-            Image(systemName: icon)
-                .font(.body)
-                .foregroundColor(iconColor)
-                .frame(width: 28, height: 28)
-            
-            // 中间文字
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.body)
-                Text(subtitle)
-                    .font(.footnote)
-                    .foregroundColor(.gray)
-            }
-            
-            Spacer()
-            
-            // 右侧系统箭头
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundColor(Color(UIColor.lightGray))
-        }
-        .padding(.vertical, 2)
-    }
-}
 
 // 辅助颜色扩展，方便对齐 WhatsApp 的各种深浅绿色
 extension Color {
