@@ -9,6 +9,9 @@ import SwiftUI
 
 
 struct SettingsView: View {
+    
+    @State private var currentCacheSize: Double = 0.0
+    
     var body: some View {
         NavigationStack {
             // 💡 换成滚动视图，背景刷一层 WhatsApp 的淡淡底色
@@ -36,7 +39,19 @@ struct SettingsView: View {
                         VStack(spacing: 0) {
                             SettingsRow(icon: "bell.fill", iconColor: .red, title: "通知", subtitle: "消息、群组和铃声")
                             customDivider
-                            SettingsRow(icon: "chart.pie.fill", iconColor: .green, title: "存储空间和数据", subtitle: "网络使用情况、自动下载")
+                            SettingsRow(icon: "chart.pie.fill", iconColor: .green, title: "存储空间和数据" + String(format: "已占用缓存: %.2f MB", currentCacheSize), subtitle: "网络使用情况、自动下载")
+                                .onAppear {
+                                    DispatchQueue.global(qos: .userInitiated).async {
+                                        let size = ImageCacheManager.shared.computeCacheSize()
+                                        DispatchQueue.main.async {
+                                            self.currentCacheSize = size
+                                        }
+                                    }
+                                }
+                                .onTapGesture {
+                                    ImageCacheManager.shared.clearAllCache()
+                                    currentCacheSize = ImageCacheManager.shared.computeCacheSize()
+                                }
                         }
                     }
                     

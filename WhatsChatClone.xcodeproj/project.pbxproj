@@ -264,6 +264,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "我们需要访问您的相机以拍摄照片";
+				INFOPLIST_KEY_NSContactsUsageDescription = "我们需要访问您的通讯录以显示可邀请的联系人";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "需要定位用于分享我的位置";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "我们需要访问您的麦克风用于发送语音信息";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "我们需要访问您的相册以发送照片";
@@ -313,6 +314,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "我们需要访问您的相机以拍摄照片";
+				INFOPLIST_KEY_NSContactsUsageDescription = "我们需要访问您的通讯录以显示可邀请的联系人";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "需要定位用于分享我的位置";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "我们需要访问您的麦克风用于发送语音信息";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "我们需要访问您的相册以发送照片";

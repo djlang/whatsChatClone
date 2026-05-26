@@ -125,6 +125,13 @@ class ChatViewModel {
                 self.mockReply(to: text ?? "")
             }
         }
+        
+        
+        if let data = imageData {
+            ImageCacheManager.shared.saveImage(data: data, forKey: "WhatsChatImageCache")
+        }
+        
+        
     }
     
     

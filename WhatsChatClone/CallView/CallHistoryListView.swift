@@ -16,31 +16,84 @@ struct CallHistoryListView: View {
     
     @Environment(\.modelContext) private var modelContext
     
+    //通讯录管理器
+    @StateObject private var contactManager = PhoneContactManager()
+    
     var body: some View {
         NavigationStack {
-            Group {
-                if callRecords.isEmpty {
-                    ContentUnavailableView("无通话记录", systemImage: "phone.badge.plus", description: Text("你打出的语音和视频通话会显示在这里。"))
-                } else {
-                    List(callRecords) { record in
-                        CallRecordRowView(record: record) { chat, type in
-                            // 点击右侧图标时触发
-                        
-                            self.currentCallContext = CallContext(chat: chat, type: type)
+            List {
+                // 🟢 Section 1：原有的通话记录列表
+                if !callRecords.isEmpty {
+                    Section(header: Text("最近通话记录")) {
+                        ForEach(callRecords) { record in
+                            CallRecordRowView(record: record) { chat, type in
+                                self.currentCallContext = CallContext(chat: chat, type: type)
+                            }
                         }
                     }
-                    .listStyle(.plain)
+                }
+                
+                // 🟢 Section 2：动态追加的手机本地通讯录（邀请列表）
+                Section(header: Text("手机通讯录 (可邀请联系人)")) {
+                    if contactManager.contacts.isEmpty {
+                        Text("暂无联系人或未开启通讯录权限")
+                            .font(.footnote)
+                            .foregroundColor(.gray)
+                            .padding(.vertical, 8)
+                    } else {
+                        ForEach(contactManager.contacts) { phoneContact in
+                            // 渲染高仿的邀请 Row
+                            HStack(spacing: 15) {
+                                // 灰色小头像
+                                Circle()
+                                    .fill(Color.gray.opacity(0.2))
+                                    .frame(width: 40, height: 40)
+                                    .overlay(Image(systemName: "person.crop.circle.fill").foregroundColor(.gray))
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(phoneContact.name)
+                                        .font(.body)
+                                        .fontWeight(.medium)
+                                    Text(phoneContact.phoneNumber)
+                                        .font(.footnote)
+                                        .foregroundColor(.gray)
+                                }
+                                
+                                Spacer()
+                                
+                                // 🔴 右侧亮起“邀请”按钮
+                                Button(action: {
+                                    print("准备给 \(phoneContact.name) 发送邀请短信...")
+                                    // 未来可以在这里调起系统发短信组件（MFMessageComposeViewController）
+                                }) {
+                                    Text("邀请")
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.green)
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 6)
+                                        .background(Color.green.opacity(0.1))
+                                        .cornerRadius(15)
+                                }
+                                .buttonStyle(.plain) // 防止干扰整行点击
+                            }
+                            .padding(.vertical, 2)
+                        }
+                    }
                 }
             }
+            .listStyle(.grouped)
             .navigationTitle("通话")
             .fullScreenCover(item: $currentCallContext) { context in
                 MockCallOverlayView(callType: context.type , chatName: context.chat.name) { duration in
                     // 回拨挂断后，同样给该联系人再落盘一条通话历史
-                    // 假设你在 ListView 也能访问到 modelContext，可以直接调用存储逻辑
-                    print("回拨结束，通话时长：\(duration)秒")
+                    // 访问到 modelContext，可以直接调用存储逻辑
                     saveCallbackRecord(to: context.chat, type: context.type, duration: duration)
                 }
                 
+            }
+            .onAppear {
+                contactManager.fetchContacts()
             }
         }
     }
