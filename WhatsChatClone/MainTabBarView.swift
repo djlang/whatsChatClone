@@ -12,7 +12,7 @@ struct MainTabBarView: View {
     @Environment(\.modelContext) private var modelContext
     
     // 用来控制拖拽悬浮窗的位置状态
-    @State private var dragOffset: CGSize = CGSize(width: 130, height: -220)
+    @State private var dragOffset: CGSize = CGSize(width: 130, height: -180)
     
     var body: some View {
         
