@@ -33,6 +33,9 @@ final class Message {
     var longitude: Double?
     var locationName: String?
     
+    // 群聊专属字段（单聊时可以为 nil）
+    var senderName: String?
+    var senderAvatar: String?
     
     
     var isSending: Bool = false // <-- 标示这条消息是否还在异步处理/发送中
@@ -52,7 +55,9 @@ final class Message {
         voiceDuration: Double? = nil,
         latitude: Double? = nil,
         longitude: Double? = nil,
-        locationName: String? = nil
+        locationName: String? = nil,
+        senderName: String? = nil,
+        senderAvatar: String? = nil
     ) {
         self.id = UUID()
         self.text = text
@@ -67,6 +72,8 @@ final class Message {
         self.latitude = latitude
         self.longitude = longitude
         self.locationName = locationName
+        self.senderName = senderName
+        self.senderAvatar = senderAvatar
         
     }
 }

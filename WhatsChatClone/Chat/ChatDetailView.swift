@@ -69,7 +69,8 @@ struct ChatDetailView: View {
             // 主内容层
             VStack(spacing: 0) {
                 MessageListView(
-                    messages: messages,
+                    messages: viewModel?.currentChat.messages ?? [],
+                    chatName: viewModel?.currentChat.name ?? "",
                     audioPlayerManager: audioPlayerManager,
                     previewMessage: $previewMessage,
                     scrollTrigger: $scrollTrigger,
@@ -330,13 +331,19 @@ extension View {
                 }
             }
             .onAppear {
+                
                 if viewModel.wrappedValue == nil {
                     viewModel.wrappedValue = ChatViewModel(modelContext: modelContext, chat: chat)
+                
                 }
+                viewModel.wrappedValue?.isViewingChat = true
                 if chat.unreadCount > 0 {
                     chat.unreadCount = 0
                     try? modelContext.save()
                 }
+            }
+            .onDisappear {
+                viewModel.wrappedValue?.isViewingChat = false
             }
     }
 }

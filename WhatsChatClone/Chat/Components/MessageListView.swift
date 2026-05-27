@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MessageListView: View {
     let messages: [Message]
+    let chatName: String
     let audioPlayerManager: AudioPlayerManager
     @Binding var previewMessage: Message?
     @Binding var scrollTrigger: Int
@@ -58,6 +59,7 @@ struct MessageListView: View {
             
             ChatBubbleView(
                 msg: msg,
+                chatName: chatName,
                 onDelete: { onDeleteMessage(msg) },
                 onPlayVideo: { _ in onPlayVideo(msg) },
                 onPreviewImage: { previewMessage = $0 },
