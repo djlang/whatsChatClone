@@ -9,6 +9,8 @@ import SwiftData
 struct MainTabBarView: View {
     // 悬浮窗通话
     @StateObject private var callManager = OverlayCallManager.shared
+    @StateObject private var roomManager = AudioRoomManager.shared
+    
     @Environment(\.modelContext) private var modelContext
     
     // 用来控制拖拽悬浮窗的位置状态
@@ -18,15 +20,15 @@ struct MainTabBarView: View {
         
         ZStack {
             TabView {
-                Text("Status View").tabItem { Label("状态", systemImage: "circle.dashed") }
-    //            Text("Calls View").tabItem { Label("通话", systemImage: "phone") }
-                CallHistoryListView().tabItem { Label("通话", systemImage: "phone") }
-                
-                // 这是我们要重点做的模块
+               
+    //
                 ChatListView().tabItem { Label("聊天", systemImage: "message.fill") }
+                CallHistoryListView().tabItem { Label("通话", systemImage: "phone") }
+                CommunityRoomListView().tabItem { Label("社群", systemImage: "person.3") }
+                Text("Status View").tabItem { Label("状态", systemImage: "circle.dashed") }
                 
                 SettingsView().tabItem { Label("设置", systemImage: "gear") }
-    //            Text("Settings View").tabItem { Label("设置", systemImage: "gear") }
+    //          
             }
             .accentColor(Color(hex: "#008069"))// 设置 Tab 选中的主题色
             
@@ -54,6 +56,15 @@ struct MainTabBarView: View {
             }else if callManager.currentMode == .minimized {
                 // 缩小状态：渲染一个可拖拽的精美小悬浮窗
                 minimizedCallBubble
+            }
+            
+            if roomManager.isRoomActive {
+                if !roomManager.isMinimized {
+                    AudioRoomOverlayView()
+                        .transition(.move(edge: .bottom))
+                }else {
+                    minimizedRoomBar
+                }
             }
             
         }
@@ -91,6 +102,48 @@ struct MainTabBarView: View {
             withAnimation(.spring()) {
                 callManager.currentMode = .fullScreen
             }
+        }
+    }
+    
+    private var minimizedRoomBar: some View {
+        VStack {
+            HStack(spacing: 12) {
+                Image(systemName: "waveform.and.mic")
+                    .foregroundColor(.green)
+                    .font(.headline)
+                    // 给他来个微微跳动的呼吸特效
+                    .scaleEffect(AudioRoomManager.shared.speakers.contains(where: { $0.isSpeaking }) ? 1.2 : 1.0)
+                    .animation(.easeInOut(duration: 0.5).repeatForever(), value: AudioRoomManager.shared.speakers.count)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(AudioRoomManager.shared.roomTitle)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.white)
+                    Text("多人语聊进行中...")
+                        .font(.system(size: 11))
+                        .foregroundColor(.gray)
+                }
+                
+                Spacer()
+                
+                // 点击返回全屏
+                Button(action: {
+                    withAnimation(.spring()) { AudioRoomManager.shared.isMinimized = false }
+                }) {
+                    Image(systemName: "goforward")
+                        .foregroundColor(.white)
+                        .font(.subheadline)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(Color.black.opacity(0.9))
+            .cornerRadius(25)
+            .padding(.horizontal, 20)
+            .padding(.top, 60) // 刚好悬浮在 iPhone 刘海屏/灵动岛下方
+            .shadow(radius: 8)
+            
+            Spacer() // 把它吊在屏幕顶部
         }
     }
     

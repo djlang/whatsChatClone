@@ -58,6 +58,7 @@ struct ChatListView: View {
                         Image(systemName: "plus.circle")
                     }
                 }
+              
             }
             .onAppear {
                 addMockDataIfNeeded()
