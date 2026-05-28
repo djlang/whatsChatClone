@@ -5,7 +5,7 @@ struct MessageListView: View {
     let chatName: String
     let audioPlayerManager: AudioPlayerManager
     @Binding var previewMessage: Message?
-    @Binding var isShowingAttachment: Bool // 💡 新增：监听附件面板状态
+    @Binding var isShowingAttachment: Bool
 
     var onDismissInput: () -> Void
     var onDeleteMessage: (Message) -> Void
@@ -26,28 +26,25 @@ struct MessageListView: View {
                 .padding(.bottom, 20)
                 .frame(maxWidth: .infinity)
             }
-            // 优化 2: 更加灵敏的滑动收起。使用 simultaneousGesture 配合 DragGesture
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 5, coordinateSpace: .local)
-                    .onChanged { value in
-                        // 如果用户有明显的垂直滑动位移，立即收起所有输入
-                        if abs(value.translation.height) > 10 {
-                            onDismissInput()
-                        }
-                    }
-            )
             .scrollDismissesKeyboard(.interactively)
             .background(waBackground)
             .onTapGesture {
                 onDismissInput()
             }
+            // 1. 发新消息时滚动
             .onChange(of: messages.count) { _, _ in
                 scrollToBottom(proxy: proxy)
             }
-            // 💡 核心优化：当附件面板弹出或收起时，自动修正滚动位置
+            // 2. 键盘弹出时滚动
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+                // 延迟是为了等待系统键盘弹出导致容器高度变化后再对齐
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    scrollToBottom(proxy: proxy)
+                }
+            }
+            // 3. 附件面板弹出时滚动
             .onChange(of: isShowingAttachment) { _, newValue in
                 if newValue {
-                    // 稍微延迟，等待面板弹出动画
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                         scrollToBottom(proxy: proxy)
                     }
@@ -56,11 +53,14 @@ struct MessageListView: View {
             .onAppear {
                 scrollToBottom(proxy: proxy, animated: false)
             }
-            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    scrollToBottom(proxy: proxy)
-                }
-            }
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 10, coordinateSpace: .local)
+                    .onChanged { value in
+                        if abs(value.translation.height) > 10 {
+                            onDismissInput()
+                        }
+                    }
+            )
         }
     }
 

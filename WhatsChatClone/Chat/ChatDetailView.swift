@@ -58,16 +58,15 @@ struct ChatDetailView: View {
 
     // MARK: - 主视图
     var body: some View {
-        // 使用 VStack 替代 ZStack 作为底层容器，确保 safeAreaInset 能正确压缩内容空间
         VStack(spacing: 0) {
             ZStack {
-                // 主内容层：MessageListView 现在处于一个会被键盘压缩高度的容器内
+                // 主内容层
                 MessageListView(
                     messages: viewModel?.currentChat.messages ?? [],
                     chatName: viewModel?.currentChat.name ?? "",
                     audioPlayerManager: audioPlayerManager,
                     previewMessage: $previewMessage,
-                    isShowingAttachment: $isShowingAttachment, // 💡 传入绑定
+                    isShowingAttachment: $isShowingAttachment,
                     onDismissInput: { self.dismissInput() },
                     onDeleteMessage: { self.deleteMessage($0) },
                     onPlayVideo: { self.playVideo(msg: $0) }
@@ -79,8 +78,15 @@ struct ChatDetailView: View {
                         .transition(.opacity.animation(.easeInOut(duration: 0.15)))
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            
+            // 物理占据空间的底部工具栏
+            bottomToolBar
+                .padding(.bottom, isInputFocused ? 0 : 0) // 键盘弹出时，由键盘避让自动处理，或者手动补偿
         }
-        .background(waBackground) // 这里的背景色会填充整个安全区域
+        .background(waBackground.ignoresSafeArea())
+        // 关键：由于我们要手动精确控制布局，有时需要禁止系统的自动避让来防止双重偏移
+        // .ignoresSafeArea(.keyboard, edges: .bottom) 
         ///导航栏按钮组
         .applyChatNavigationConfiguration(name: chat.name, trailingToolbar: chatTrailingToolbar())
         //全屏弹窗与遮罩
@@ -100,9 +106,6 @@ struct ChatDetailView: View {
             chat: chat,
             modelContext: modelContext
         )
-        .safeAreaInset(edge: .bottom) {
-            bottomToolBar
-        }
     }
     
     // MARK: - 子视图提取 2: 底部输入功能栏
