@@ -219,11 +219,24 @@ extension ChatDetailView {
     }
 
     func playVideo(msg: Message) {
+        // 1. 优先尝试从本地物理路径加载 (秒开，节省 IO)
+        if let pathName = msg.videoPath, let vm = viewModel {
+            let fileURL = vm.getVideoURL(for: pathName)
+            if FileManager.default.fileExists(atPath: fileURL.path) {
+                presentVideoPlayer(url: fileURL)
+                return
+            }
+        }
+        
+        // 2. 兜底逻辑：从二进制数据恢复（适用于缓存被清理的情况）
         guard let videoData = msg.videoData else { return }
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("temp_video.mp4")
         try? videoData.write(to: tempURL)
-        
-        let player = AVPlayer(url: tempURL)
+        presentVideoPlayer(url: tempURL)
+    }
+
+    private func presentVideoPlayer(url: URL) {
+        let player = AVPlayer(url: url)
         let playerVC = AVPlayerViewController()
         playerVC.player = player
         playerVC.allowsVideoFrameAnalysis = false

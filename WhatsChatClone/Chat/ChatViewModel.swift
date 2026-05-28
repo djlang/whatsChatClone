@@ -129,6 +129,7 @@ class ChatViewModel {
             longitude: longitude,
             locationName: locationName
         )
+        newMessage.videoPath = videoPathName // 💡 补全视频路径存储
         
         newMessage.isSending = isMedia // 如果是多媒体，上屏先转圈
         
@@ -300,6 +301,12 @@ class ChatViewModel {
             print("缓存视频失败: \(error)")
             return nil
         }
+    }
+    
+    /// 根据相对路径获取完整的视频缓存 URL
+    func getVideoURL(for pathName: String) -> URL {
+        let cachePath = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+        return cachePath.appendingPathComponent(pathName)
     }
     
     /// 插入一条音视频通话历史记录

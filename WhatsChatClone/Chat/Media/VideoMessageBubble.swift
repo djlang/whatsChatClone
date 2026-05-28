@@ -6,8 +6,11 @@
 //
 import SwiftUI
 
-struct VideoMessageBubble: View, MessageRenderable {
+struct VideoMessageBubble: View {
     let msg: Message
+    
+    @State private var displayImage: UIImage? = nil
+    @State private var isLoading = false
     
     init(msg: Message) {
         self.msg = msg
@@ -15,19 +18,19 @@ struct VideoMessageBubble: View, MessageRenderable {
     
     var body: some View {
         ZStack {
-            // 尝试显示视频封面图 (存储在 imageData 中)
-            if let thumbData = msg.imageData, let uiImage = UIImage(data: thumbData) {
+            if let uiImage = displayImage {
                 Image(uiImage: uiImage)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-                    .frame(width: 200, height: 200)
-                    .cornerRadius(10)
+                    .transition(.opacity)
             } else {
-                // 封面图缺失时的占位色块
+                // 封面图缺失或加载中的占位色块
                 Rectangle()
                     .fill(Color.gray.opacity(0.2))
-                    .frame(width: 200, height: 200)
-                    .cornerRadius(10)
+                    .overlay(
+                        ProgressView()
+                            .opacity(isLoading ? 1 : 0)
+                    )
             }
             
             // 视频标识
@@ -35,6 +38,36 @@ struct VideoMessageBubble: View, MessageRenderable {
                 .font(.system(size: 40))
                 .foregroundColor(.white.opacity(0.8))
                 .shadow(radius: 5)
+        }
+        .frame(width: 200, height: 200)
+        .cornerRadius(10)
+        .task {
+            await loadThumbnail()
+        }
+    }
+    
+    private func loadThumbnail() async {
+        if displayImage != nil { return }
+        isLoading = true
+        
+        let image = await Task.detached(priority: .userInitiated) {
+            return await ImageCacheManager.shared.image(forKey: msg.id.uuidString, targetSize: CGSize(width: 200, height: 200))
+        }.value
+        
+        await MainActor.run {
+            withAnimation(.easeIn(duration: 0.2)) {
+                self.displayImage = image
+                self.isLoading = false
+            }
+        }
+        
+        // 兜底逻辑
+        if displayImage == nil, let data = msg.imageData {
+             if let fallbackImage = UIImage(data: data) {
+                 await MainActor.run {
+                     self.displayImage = fallbackImage
+                 }
+             }
         }
     }
 }
