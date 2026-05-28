@@ -13,10 +13,7 @@ struct ChatDetailView: View {
     // 1. 获取数据库上下文
     @Environment(\.modelContext) private var modelContext
     
-    // 2. 自动从数据库实时抓取消息（按时间升序）
-    @Query var messages: [Message]
-    
-    // 3. 状态管理
+    // 2. 状态管理
     @State private var isShowingAttachment: Bool = false
     @FocusState private var isInputFocused: Bool
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
@@ -32,20 +29,8 @@ struct ChatDetailView: View {
     //通话状态
     @State private var activeCallType: CallType? = nil // 记录当前激活动态：语音还是视频
     
-    // WhatsApp 颜色
-    let waGreen = Color(red: 0.88, green: 0.99, blue: 0.78)
-    let waBackground = Color(red: 0.94, green: 0.91, blue: 0.88)
-    let keyboardLikeBackground = Color(UIColor.systemGroupedBackground)
-    
     init(chat: ChatSummary) {
         self.chat = chat
-        
-        let targetID = chat.id
-        _messages = Query(
-            filter: #Predicate<Message> { $0.chatSummary?.id == targetID },
-            sort: \Message.timestamp,
-            order: .forward
-        )
     }
 
     // 统一收起逻辑
@@ -61,17 +46,22 @@ struct ChatDetailView: View {
         VStack(spacing: 0) {
             ZStack {
                 // 主内容层
-                MessageListView(
-                    messages: viewModel?.currentChat.messages ?? [],
-                    chatName: viewModel?.currentChat.name ?? "",
-                    audioPlayerManager: audioPlayerManager,
-                    previewMessage: $previewMessage,
-                    isShowingAttachment: $isShowingAttachment,
-                    onDismissInput: { self.dismissInput() },
-                    onDeleteMessage: { self.deleteMessage($0) },
-                    onPlayVideo: { self.playVideo(msg: $0) }
-                )
-                
+                if let vm = viewModel {
+                    MessageListView(
+                        messages: vm.messages,
+                        chatName: vm.currentChat.name,
+                        audioPlayerManager: audioPlayerManager,
+                        previewMessage: $previewMessage,
+                        isShowingAttachment: $isShowingAttachment,
+                        hasMoreMessages: vm.hasMoreMessages,
+                        isLoadingMore: vm.isLoadingMore,
+                        onLoadMore: { vm.loadMoreMessages() },
+                        onDismissInput: { self.dismissInput() },
+                        onDeleteMessage: { self.deleteMessage($0) },
+                        onPlayVideo: { self.playVideo(msg: $0) }
+                    )
+                }
+
                 // --- 录音全屏遮罩层 ---
                 if let vm = viewModel, vm.isRecordingVoice {
                     VoiceRecordingOverlayView(isCancelled: vm.isRecordingCancelled, audioLevel: vm.voiceAudioLevel)
@@ -82,11 +72,9 @@ struct ChatDetailView: View {
             
             // 物理占据空间的底部工具栏
             bottomToolBar
-                .padding(.bottom, isInputFocused ? 0 : 0) // 键盘弹出时，由键盘避让自动处理，或者手动补偿
+                .padding(.bottom, isInputFocused ? 0 : 0) 
         }
-        .background(waBackground.ignoresSafeArea())
-        // 关键：由于我们要手动精确控制布局，有时需要禁止系统的自动避让来防止双重偏移
-        // .ignoresSafeArea(.keyboard, edges: .bottom) 
+        .background(Color.waBackground.ignoresSafeArea())
         ///导航栏按钮组
         .applyChatNavigationConfiguration(name: chat.name, trailingToolbar: chatTrailingToolbar())
         //全屏弹窗与遮罩
@@ -140,7 +128,7 @@ struct ChatDetailView: View {
                     isRecordingCancelled: Bindable(vm).isRecordingCancelled,
                     voiceAudioLevel: Bindable(vm).voiceAudioLevel
                 )
-                .background(keyboardLikeBackground)
+                .background(Color.waInputBarBackground)
             }
             
             // 附件栏明细
@@ -158,7 +146,7 @@ struct ChatDetailView: View {
                     }
                 )
                 .frame(height: 250)
-                .background(keyboardLikeBackground)
+                .background(Color.waInputBarBackground)
                 .transition(.move(edge: .bottom))
             }
         }
@@ -327,8 +315,11 @@ extension View {
                 
                 if viewModel.wrappedValue == nil {
                     viewModel.wrappedValue = ChatViewModel(modelContext: modelContext, chat: chat)
-                
                 }
+                
+                // 💡 页面出现时加载初始消息
+                viewModel.wrappedValue?.loadInitialMessages()
+                
                 viewModel.wrappedValue?.isViewingChat = true
                 if chat.unreadCount > 0 {
                     chat.unreadCount = 0

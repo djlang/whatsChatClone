@@ -21,6 +21,40 @@ extension Color {
         }
         self.init(.sRGB, red: Double(r) / 255, green: Double(g) / 255, blue: Double(b) / 255, opacity: Double(a) / 255)
     }
+    
+    // MARK: - WhatsApp Adaptive Colors
+    
+    static var waBackground: Color {
+        Color(UIColor { trait in
+            trait.userInterfaceStyle == .dark 
+                ? UIColor(red: 0.04, green: 0.08, blue: 0.10, alpha: 1.0) // 深蓝黑
+                : UIColor(red: 0.94, green: 0.91, blue: 0.88, alpha: 1.0) // 浅米黄
+        })
+    }
+    
+    static var waMyBubble: Color {
+        Color(UIColor { trait in
+            trait.userInterfaceStyle == .dark
+                ? UIColor(red: 0.00, green: 0.36, blue: 0.29, alpha: 1.0) // 深绿色
+                : UIColor(red: 0.00, green: 0.53, blue: 0.43, alpha: 1.0) // 经典绿
+        })
+    }
+    
+    static var waOtherBubble: Color {
+        Color(UIColor { trait in
+            trait.userInterfaceStyle == .dark
+                ? UIColor(red: 0.13, green: 0.17, blue: 0.20, alpha: 1.0) // 深灰色
+                : .white
+        })
+    }
+    
+    static var waInputBarBackground: Color {
+        Color(UIColor { trait in
+            trait.userInterfaceStyle == .dark
+                ? UIColor(red: 0.13, green: 0.17, blue: 0.20, alpha: 1.0)
+                : UIColor.systemGroupedBackground
+        })
+    }
 }
 
 

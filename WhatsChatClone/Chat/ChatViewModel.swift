@@ -16,6 +16,13 @@ class ChatViewModel {
     var modelContext: ModelContext
     var currentChat: ChatSummary
     
+    // MARK: - 数据分页状态
+    var messages: [Message] = []
+    private var pageSize = 20
+    private var currentOffset = 0
+    var hasMoreMessages = true
+    var isLoadingMore = false
+    
     // MARK: - UI 交互状态 (从 View 下沉到 ViewModel)
     var inputText: String = ""
     var isVoiceMode: Bool = false
@@ -36,7 +43,11 @@ class ChatViewModel {
         (name: "李阿强", avatar: "person.crop.circle.badge.checkmark"),
         (name: "张大小姐", avatar: "person.circle"),
         (name: "代码搬运工", avatar: "curlybraces"),
-        (name: "王总", avatar: "person.box.digits.badge.purple")
+        (name: "王总", avatar: "person.spatialaudio.fill"),
+        (name: "牧笛", avatar: "figure.stand.dress"),
+        (name: "小桃子", avatar: "person.2.shield.fill")
+        
+        
     ]
     
     /// 模拟群聊损友语录库
@@ -48,12 +59,77 @@ class ChatViewModel {
         "卧槽，这群里真是什么大能都有啊...",
         "收到，晚点看，现在正在疯狂改 Bug 😭",
         "唱首歌吧",
-        "本文介绍如何集成声网实时互动 SDK"
+        "本文介绍如何集成声网实时互动 SDK",
+        "不要緊 山野都有霧燈，頑童亦學乖 不敢太勇敢，世上有多少個繽紛樂園任你行",
+        "世界和平繁荣昌盛",
+        "新需要求字段终于可以了",
+        "无限滚动加",
+        " 性能保障",
+        "默认每页加载 20 条，初次进入页面时只加载最新的 20 条，极大加快了页面的启动速度",
+        "：滑到顶部后，菊花转动，旧消息静默出现，你的视线会稳稳地停留在刚才的位置，不会再莫名其妙滑到底部",
+        
     ]
     
     init(modelContext: ModelContext, chat: ChatSummary) {
         self.modelContext = modelContext
         self.currentChat = chat
+    }
+    
+    // MARK: - 分页加载逻辑
+    
+    /// 加载初始消息（最新的 20 条）
+    func loadInitialMessages() {
+        // 如果已经加载过，且不是强制刷新，则不重复加载
+        guard messages.isEmpty else { return }
+        currentOffset = 0
+        fetchMessages(isInitial: true)
+    }
+    
+    /// 加载更多历史消息
+    func loadMoreMessages() {
+        guard hasMoreMessages && !isLoadingMore else { return }
+        isLoadingMore = true
+        
+        // 模拟一点网络延迟，可以看到加载动画
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            self.fetchMessages(isInitial: false)
+        }
+    }
+    
+    private func fetchMessages(isInitial: Bool) {
+        let targetID = currentChat.id
+        
+        var descriptor = FetchDescriptor<Message>(
+            predicate: #Predicate<Message> { $0.chatSummary?.id == targetID },
+            sortBy: [SortDescriptor(\.timestamp, order: .reverse)] // 按时间降序，先拿最新的
+        )
+        descriptor.fetchLimit = pageSize
+        descriptor.fetchOffset = currentOffset
+        
+        do {
+            let results = try modelContext.fetch(descriptor)
+            
+            if results.count < pageSize {
+                hasMoreMessages = false
+            }
+            
+            // 将拿到的消息按时间升序排列，以便在 UI 中正确显示（旧的在上，新的在下）
+            let sortedResults = results.sorted(by: { $0.timestamp < $1.timestamp })
+            
+            if isInitial {
+                self.messages = sortedResults
+            } else {
+                // 插入到现有消息的头部
+                self.messages.insert(contentsOf: sortedResults, at: 0)
+            }
+            
+            currentOffset += results.count
+            isLoadingMore = false
+            
+        } catch {
+            print("读取消息失败: \(error)")
+            isLoadingMore = false
+        }
     }
     
     // MARK: - 视频处理逻辑
@@ -136,6 +212,8 @@ class ChatViewModel {
         // 2. 建立关联（SwiftData 会自动处理插入）
         if currentChat.messages == nil { currentChat.messages = [] }
         currentChat.messages?.append(newMessage)
+        // 💡 同步到 ViewModel 本地数组
+        self.messages.append(newMessage)
         
         // 3. 更新会话摘要展示
         updateSummary(with: newMessage)
@@ -221,8 +299,11 @@ class ChatViewModel {
             isFromMe: false,
             timestamp: now
         )
-        
+        replyMessage.chatSummary = currentChat
         currentChat.messages?.append(replyMessage)
+        // 💡 同步到 ViewModel 数组
+        self.messages.append(replyMessage)
+        
         currentChat.lastMessage = replyText
         currentChat.lastTimestamp = now
         //是否正在当前聊天页内
@@ -264,6 +345,8 @@ class ChatViewModel {
                 // 3. 上屏持久化
                 if self.currentChat.messages == nil { self.currentChat.messages = [] }
                 self.currentChat.messages?.append(groupMessage)
+                // 💡 同步到 ViewModel 数组
+                self.messages.append(groupMessage)
                 
                 // 4. 微信群格式摘要：显示 “昵称: 内容”
                 self.currentChat.lastMessage = "\(member.name): \(replyText)"

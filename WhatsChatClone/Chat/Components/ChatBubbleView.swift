@@ -129,7 +129,7 @@ struct ChatBubbleView: View {
                 .font(.system(size: 16))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
-                .background(msg.isFromMe ? Color(red: 0.0, green: 0.53, blue: 0.43) : Color.white)
+                .background(msg.isFromMe ? Color.waMyBubble : Color.waOtherBubble)
                 .foregroundColor(msg.isFromMe ? .white : .primary)
                 .clipShape(BubbleCornerRadiusShape(isFromMe: msg.isFromMe))
         }

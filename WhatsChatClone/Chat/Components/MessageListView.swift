@@ -7,16 +7,38 @@ struct MessageListView: View {
     @Binding var previewMessage: Message?
     @Binding var isShowingAttachment: Bool
 
+    // MARK: - 分页相关
+    var hasMoreMessages: Bool
+    var isLoadingMore: Bool
+    var onLoadMore: () -> Void
+
     var onDismissInput: () -> Void
     var onDeleteMessage: (Message) -> Void
     var onPlayVideo: (Message) -> Void
-
-    let waBackground = Color(red: 0.94, green: 0.91, blue: 0.88)
 
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 12) {
+                    
+                    // 💡 分页加载检测器
+                    if hasMoreMessages {
+                        HStack {
+                            Spacer()
+                            if isLoadingMore {
+                                ProgressView()
+                                    .padding(.vertical, 20)
+                            } else {
+                                Color.clear
+                                    .frame(height: 20)
+                                    .onAppear {
+                                        onLoadMore()
+                                    }
+                            }
+                            Spacer()
+                        }
+                    }
+                    
                     ForEach(Array(messages.enumerated()), id: \.element.id) { index, msg in
                         messageRow(at: index, message: msg)
                     }
@@ -26,32 +48,29 @@ struct MessageListView: View {
                 .padding(.bottom, 20)
                 .frame(maxWidth: .infinity)
             }
+            // ❌ 移除 .defaultScrollAnchor(.bottom)，它是导致加载旧消息时回跳底部的元凶
             .scrollDismissesKeyboard(.interactively)
-            .background(waBackground)
+            .background(Color.waBackground)
             .onTapGesture {
                 onDismissInput()
             }
             // 1. 发新消息时滚动
-            .onChange(of: messages.count) { _, _ in
-                scrollToBottom(proxy: proxy)
-            }
-            // 2. 键盘弹出时滚动
-            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
-                // 延迟是为了等待系统键盘弹出导致容器高度变化后再对齐
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            .onChange(of: messages.count) { oldVal, newVal in
+                // 💡 只有当是真正的“新消息”增加时（不是加载更多导致）才自动滚到底部
+                if newVal > oldVal && !isLoadingMore {
                     scrollToBottom(proxy: proxy)
                 }
             }
-            // 3. 附件面板弹出时滚动
-            .onChange(of: isShowingAttachment) { _, newValue in
-                if newValue {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                        scrollToBottom(proxy: proxy)
-                    }
+            .onAppear {
+                // 首次进入：直接定位到最新消息
+                if let lastId = messages.last?.id {
+                    proxy.scrollTo(lastId, anchor: .bottom)
                 }
             }
-            .onAppear {
-                scrollToBottom(proxy: proxy, animated: false)
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    scrollToBottom(proxy: proxy)
+                }
             }
             .simultaneousGesture(
                 DragGesture(minimumDistance: 10, coordinateSpace: .local)

@@ -42,7 +42,9 @@ final class AudioRoomManager: ObservableObject {
             RoomUser(name: "我", avatarName: "person.crop.circle.fill", isSpeaker: true),
             RoomUser(name: "李阿强", avatarName: "person.crop.circle.badge.checkmark", isSpeaker: true),
             RoomUser(name: "张大小姐", avatarName: "person.circle", isSpeaker: true),
-            RoomUser(name: "王总", avatarName: "person.box.digits.badge.purple", isSpeaker: false) // 听众
+            RoomUser(name: "王总", avatarName: "person.spatialaudio.fill", isSpeaker: false), // 听众
+            RoomUser(name: "小桃子", avatarName: "person.2.shield.fill", isSpeaker: true),
+            RoomUser(name: "牧笛", avatarName: "figure.stand.dress", isSpeaker: true),
         ]
         
         // 2. 开启房间总计时
