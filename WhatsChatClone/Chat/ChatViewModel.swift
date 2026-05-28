@@ -141,7 +141,7 @@ class ChatViewModel {
         
         // 4. 图片物理缓存保存
         if let data = imageData {
-            ImageCacheManager.shared.saveImage(data: data, forKey: "WhatsChatImageCache")
+            ImageCacheManager.shared.saveImage(data: data, forKey: newMessage.id.uuidString)
         }
         
         // ==========================================

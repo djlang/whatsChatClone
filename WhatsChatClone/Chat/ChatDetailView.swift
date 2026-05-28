@@ -175,7 +175,27 @@ struct ChatDetailView: View {
         }
     }
     
-    private func openZLPhotoPicker() {
+    private func deleteMessage(_ msg: Message) {
+        let summary = msg.chatSummary
+        modelContext.delete(msg)
+        
+        if let summary = summary {
+            let remainingMessages = summary.messages?.filter { $0.id != msg.id }
+            if let lastRemaining = remainingMessages?.sorted(by: { $0.timestamp < $1.timestamp }).last {
+                summary.lastMessage = lastRemaining.text
+                summary.lastTimestamp = lastRemaining.timestamp
+            } else {
+                summary.lastMessage = "暂无消息"
+            }
+        }
+        try? modelContext.save()
+    }
+}
+
+// MARK: - 📸 媒体处理扩展 (相册选择与视频播放)
+extension ChatDetailView {
+    
+    func openZLPhotoPicker() {
         let picker = ZLPhotoPicker()
         picker.selectImageBlock = { results, isOriginal in
             for result in results {
@@ -198,7 +218,7 @@ struct ChatDetailView: View {
         picker.showPhotoLibrary(sender: rootVC)
     }
 
-    private func playVideo(msg: Message) {
+    func playVideo(msg: Message) {
         guard let videoData = msg.videoData else { return }
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("temp_video.mp4")
         try? videoData.write(to: tempURL)
@@ -215,39 +235,7 @@ struct ChatDetailView: View {
             player.play()
         }
     }
-    
-    private func saveToGallery(msg: Message) {
-        MediaService.shared.saveToGallery(msg: msg)
-    }
-    
-    private func formatCallDuration(_ seconds: TimeInterval) -> String {
-        let s = Int(seconds) % 60
-        let m = Int(seconds) / 60
-        if m > 0 {
-            return "\(m)分\(s)秒"
-        } else {
-            return "\(s)秒"
-        }
-    }
-    
-    private func deleteMessage(_ msg: Message) {
-        let summary = msg.chatSummary
-        modelContext.delete(msg)
-        
-        if let summary = summary {
-            let remainingMessages = summary.messages?.filter { $0.id != msg.id }
-            if let lastRemaining = remainingMessages?.sorted(by: { $0.timestamp < $1.timestamp }).last {
-                summary.lastMessage = lastRemaining.text
-                summary.lastTimestamp = lastRemaining.timestamp
-            } else {
-                summary.lastMessage = "暂无消息"
-            }
-        }
-        try? modelContext.save()
-    }
 }
-
-
 
 extension View {
     /// 封装聊天页面的导航栏与工具栏配置
