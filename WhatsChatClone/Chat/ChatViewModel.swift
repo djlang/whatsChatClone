@@ -16,6 +16,13 @@ class ChatViewModel {
     var modelContext: ModelContext
     var currentChat: ChatSummary
     
+    // MARK: - UI 交互状态 (从 View 下沉到 ViewModel)
+    var inputText: String = ""
+    var isVoiceMode: Bool = false
+    var isRecordingVoice: Bool = false
+    var isRecordingCancelled: Bool = false
+    var voiceAudioLevel: Float = 0
+    
     // 标记用户当前是否正停留在该聊天详情页内
     var isViewingChat: Bool = false
     

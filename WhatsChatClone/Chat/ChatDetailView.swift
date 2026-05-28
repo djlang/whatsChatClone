@@ -8,11 +8,6 @@ struct ChatDetailView: View {
     @StateObject private var locationManager = LocationManager()
     @StateObject private var audioPlayerManager = AudioPlayerManager()
     
-    @State private var isVoiceMode: Bool = false
-    @State private var isRecordingVoice: Bool = false
-    @State private var isRecordingCancelled: Bool = false // 记录手势是否滑到了取消区
-    @State private var voiceAudioLevel: Float = 0
-    
     var chat: ChatSummary
     
     // 1. 获取数据库上下文
@@ -22,7 +17,6 @@ struct ChatDetailView: View {
     @Query var messages: [Message]
     
     // 3. 状态管理
-    @State private var inputText = ""
     @State private var isShowingAttachment: Bool = false
     @FocusState private var isInputFocused: Bool
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
@@ -32,7 +26,6 @@ struct ChatDetailView: View {
     @State private var previewMessage: Message? = nil
     // 键盘与滚动状态
     @State private var keyboardHeight: CGFloat = 0
-    @State private var scrollTrigger: Int = 0
     
     @State private var viewModel: ChatViewModel?
     
@@ -65,28 +58,29 @@ struct ChatDetailView: View {
 
     // MARK: - 主视图
     var body: some View {
-        ZStack {
-            // 主内容层
-            VStack(spacing: 0) {
+        // 使用 VStack 替代 ZStack 作为底层容器，确保 safeAreaInset 能正确压缩内容空间
+        VStack(spacing: 0) {
+            ZStack {
+                // 主内容层：MessageListView 现在处于一个会被键盘压缩高度的容器内
                 MessageListView(
                     messages: viewModel?.currentChat.messages ?? [],
                     chatName: viewModel?.currentChat.name ?? "",
                     audioPlayerManager: audioPlayerManager,
                     previewMessage: $previewMessage,
-                    scrollTrigger: $scrollTrigger,
+                    isShowingAttachment: $isShowingAttachment, // 💡 传入绑定
                     onDismissInput: { self.dismissInput() },
                     onDeleteMessage: { self.deleteMessage($0) },
                     onPlayVideo: { self.playVideo(msg: $0) }
                 )
-            }
-            
-            // --- 录音全屏遮罩层 ---
-            if isRecordingVoice {
-                // 关键点：将 voiceAudioLevel 注入进 Overlay，使波纹能实时变动
-                VoiceRecordingOverlayView(isCancelled: isRecordingCancelled, audioLevel: voiceAudioLevel)
-                    .transition(.opacity.animation(.easeInOut(duration: 0.15))) // 丝滑淡入淡出
+                
+                // --- 录音全屏遮罩层 ---
+                if let vm = viewModel, vm.isRecordingVoice {
+                    VoiceRecordingOverlayView(isCancelled: vm.isRecordingCancelled, audioLevel: vm.voiceAudioLevel)
+                        .transition(.opacity.animation(.easeInOut(duration: 0.15)))
+                }
             }
         }
+        .background(waBackground) // 这里的背景色会填充整个安全区域
         ///导航栏按钮组
         .applyChatNavigationConfiguration(name: chat.name, trailingToolbar: chatTrailingToolbar())
         //全屏弹窗与遮罩
@@ -94,13 +88,11 @@ struct ChatDetailView: View {
             previewMessage: $previewMessage,
             selectedLocationMessage: $selectedLocationMessage,
             chatName: chat.name
-    
         )
         .setupChatBusinessLogic(
             isInputFocused: $isInputFocused,
             isShowingAttachment: $isShowingAttachment,
             keyboardHeight: $keyboardHeight,
-            scrollTrigger: $scrollTrigger,
             activeCallType: $activeCallType,
             audioPlayerManager: audioPlayerManager,
             locationManager: locationManager,
@@ -116,35 +108,37 @@ struct ChatDetailView: View {
     // MARK: - 子视图提取 2: 底部输入功能栏
     private var bottomToolBar: some View {
         VStack(spacing: 0) {
-            InputBarView(
-                inputText: $inputText,
-                isVoiceMode: $isVoiceMode,
-                isInputFocused: $isInputFocused,
-                onToggleAttachment: {
-                    self.toggleAttachment()
-                },
-                onSendMessage: {
-                    self.viewModel?.sendMessage(type: "text", text: self.inputText)
-                    self.inputText = ""
-                },
-                onToggleVoiceMode: {
-                    withAnimation(.spring(response: 0.3)) {
-                        self.isVoiceMode.toggle()
-                        if self.isVoiceMode {
-                            self.dismissInput()
-                        } else {
-                            self.isInputFocused = true
+            if let vm = viewModel {
+                InputBarView(
+                    inputText: Bindable(vm).inputText,
+                    isVoiceMode: Bindable(vm).isVoiceMode,
+                    isInputFocused: $isInputFocused,
+                    onToggleAttachment: {
+                        self.toggleAttachment()
+                    },
+                    onSendMessage: {
+                        self.viewModel?.sendMessage(type: "text", text: vm.inputText)
+                        vm.inputText = ""
+                    },
+                    onToggleVoiceMode: {
+                        withAnimation(.spring(response: 0.3)) {
+                            vm.isVoiceMode.toggle()
+                            if vm.isVoiceMode {
+                                self.dismissInput()
+                            } else {
+                                self.isInputFocused = true
+                            }
                         }
-                    }
-                },
-                onRecordComplete: { data, duration in
-                    self.viewModel?.sendMessage(type: "voice", voiceData: data, voiceDuration: duration)
-                },
-                isRecordingVoice: $isRecordingVoice,
-                isRecordingCancelled: $isRecordingCancelled,
-                voiceAudioLevel: $voiceAudioLevel
-            )
-            .background(keyboardLikeBackground)
+                    },
+                    onRecordComplete: { data, duration in
+                        self.viewModel?.sendMessage(type: "voice", voiceData: data, voiceDuration: duration)
+                    },
+                    isRecordingVoice: Bindable(vm).isRecordingVoice,
+                    isRecordingCancelled: Bindable(vm).isRecordingCancelled,
+                    voiceAudioLevel: Bindable(vm).voiceAudioLevel
+                )
+                .background(keyboardLikeBackground)
+            }
             
             // 附件栏明细
             if isShowingAttachment {
@@ -175,7 +169,6 @@ struct ChatDetailView: View {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                 isShowingAttachment = true
             }
-            scrollTrigger += 1
         }
     }
     
@@ -288,7 +281,6 @@ extension View {
         isInputFocused: FocusState<Bool>.Binding,
         isShowingAttachment: Binding<Bool>,
         keyboardHeight: Binding<CGFloat>,
-        scrollTrigger: Binding<Int>,
         activeCallType: Binding<CallType?>,
         audioPlayerManager: AudioPlayerManager,
         locationManager: LocationManager,
@@ -301,9 +293,6 @@ extension View {
                 if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
                     withAnimation(.easeOut(duration: 0.25)) {
                         keyboardHeight.wrappedValue = keyboardFrame.height
-                    }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.26) {
-                        scrollTrigger.wrappedValue += 1
                     }
                 }
             }
