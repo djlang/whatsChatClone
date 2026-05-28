@@ -111,7 +111,7 @@ struct MessageListView: View {
                 if msg.isSending {
                     ProgressView()
                         .scaleEffect(0.8)
-                        .padding(msg.isFromMe ? .leading : .trailing, -30)
+                        .padding(msg.isFromMe ? .leading : .trailing, -40)
                 }
             }
         }

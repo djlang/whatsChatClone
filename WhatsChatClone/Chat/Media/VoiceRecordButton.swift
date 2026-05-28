@@ -23,7 +23,7 @@ struct VoiceRecordButton: View {
             .foregroundColor(.primary)
             .frame(maxWidth: .infinity)
             .frame(height: 40)
-            .background(isRecording ? Color.gray.opacity(0.3) : Color.white)
+            .background(isRecording ? Color.gray.opacity(0.3) : Color.waInputBackground)
             .cornerRadius(8)
             .overlay(
                 RoundedRectangle(cornerRadius: 8)

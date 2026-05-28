@@ -15,7 +15,7 @@ struct ChatBubbleView: View {
     }
     
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: 5) {
             
             // ==========================================
             // 1. 🧔 对方发送的消息：左侧头像区
@@ -30,7 +30,7 @@ struct ChatBubbleView: View {
                             .font(.system(size: 22))
                             .foregroundColor(.white)
                     )
-                    .padding(.leading, 8)
+                    .padding(.leading, 4)
             } else {
                 // 我发的，左侧留出 Spacer 把气泡推到最右
                 Spacer()
@@ -46,7 +46,7 @@ struct ChatBubbleView: View {
                     Text(msg.senderName ?? chatName)
                         .font(.system(size: 11))
                         .foregroundColor(.blue)
-                        .padding(.leading, 4)
+                        .padding(.leading, 1)
                 }
                 
                 // 📦 完好保留你所有的多媒体渲染逻辑
@@ -95,7 +95,7 @@ struct ChatBubbleView: View {
                             .font(.system(size: 18))
                             .foregroundColor(.white.opacity(0.9))
                     )
-                    .padding(.trailing, 8)
+                    .padding(.trailing, 1)
             } else {
                 // 对方发的，右侧留出 Spacer 把气泡挡在左侧
                 Spacer()

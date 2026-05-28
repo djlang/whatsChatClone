@@ -13,7 +13,7 @@ import AVFoundation
 
 @Observable
 class ChatViewModel {
-    var modelContext: ModelContext
+    var modelContext: ModelContext  
     var currentChat: ChatSummary
     
     // MARK: - 数据分页状态

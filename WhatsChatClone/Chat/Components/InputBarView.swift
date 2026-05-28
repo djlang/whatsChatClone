@@ -37,7 +37,7 @@ struct InputBarView: View {
                     .focused($isInputFocused)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(Color.white)
+                    .background(Color.waInputBackground)
                     .cornerRadius(20)
                     .overlay(
                         RoundedRectangle(cornerRadius: 20)

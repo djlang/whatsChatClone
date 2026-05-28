@@ -248,7 +248,6 @@ extension View {
             .toolbar(.hidden, for: .tabBar)
             .toolbarBackground(Color(UIColor.systemGroupedBackground), for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarColorScheme(.light, for: .navigationBar)
     }
     
     /// 封装聊天页面的全屏弹窗与遮罩

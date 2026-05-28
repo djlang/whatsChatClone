@@ -55,6 +55,14 @@ extension Color {
                 : UIColor.systemGroupedBackground
         })
     }
+    
+    static var waInputBackground: Color {
+        Color(UIColor { trait in
+            trait.userInterfaceStyle == .dark
+                ? UIColor(red: 0.15, green: 0.20, blue: 0.25, alpha: 1.0)
+                : .white
+        })
+    }
 }
 
 
