@@ -7,6 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		899029C42FC967A900F5651C /* HaishinKit in Frameworks */ = {isa = PBXBuildFile; productRef = 899029C32FC967A900F5651C /* HaishinKit */; };
+		899029D12FC96AF100F5651C /* MoQTHaishinKit in Frameworks */ = {isa = PBXBuildFile; productRef = 899029D02FC96AF100F5651C /* MoQTHaishinKit */; };
+		899029D32FC96AF100F5651C /* RTCHaishinKit in Frameworks */ = {isa = PBXBuildFile; productRef = 899029D22FC96AF100F5651C /* RTCHaishinKit */; };
+		899029D52FC96AF100F5651C /* RTMPHaishinKit in Frameworks */ = {isa = PBXBuildFile; productRef = 899029D42FC96AF100F5651C /* RTMPHaishinKit */; };
+		899029D72FC96AF100F5651C /* SRTHaishinKit in Frameworks */ = {isa = PBXBuildFile; productRef = 899029D62FC96AF100F5651C /* SRTHaishinKit */; };
 		899E3D9D2FB44A0000930ED6 /* ZLPhotoBrowser in Frameworks */ = {isa = PBXBuildFile; productRef = 899E3D9C2FB44A0000930ED6 /* ZLPhotoBrowser */; };
 /* End PBXBuildFile section */
 
@@ -27,6 +32,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				899029D12FC96AF100F5651C /* MoQTHaishinKit in Frameworks */,
+				899029D52FC96AF100F5651C /* RTMPHaishinKit in Frameworks */,
+				899029D72FC96AF100F5651C /* SRTHaishinKit in Frameworks */,
+				899029C42FC967A900F5651C /* HaishinKit in Frameworks */,
+				899029D32FC96AF100F5651C /* RTCHaishinKit in Frameworks */,
 				899E3D9D2FB44A0000930ED6 /* ZLPhotoBrowser in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -34,10 +44,18 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		899029C22FC967A900F5651C /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		899E3D612FB2FA9E00930ED6 = {
 			isa = PBXGroup;
 			children = (
 				899E3D6C2FB2FA9E00930ED6 /* WhatsChatClone */,
+				899029C22FC967A900F5651C /* Frameworks */,
 				899E3D6B2FB2FA9E00930ED6 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -71,6 +89,11 @@
 			name = WhatsChatClone;
 			packageProductDependencies = (
 				899E3D9C2FB44A0000930ED6 /* ZLPhotoBrowser */,
+				899029C32FC967A900F5651C /* HaishinKit */,
+				899029D02FC96AF100F5651C /* MoQTHaishinKit */,
+				899029D22FC96AF100F5651C /* RTCHaishinKit */,
+				899029D42FC96AF100F5651C /* RTMPHaishinKit */,
+				899029D62FC96AF100F5651C /* SRTHaishinKit */,
 			);
 			productName = WhatsChatClone;
 			productReference = 899E3D6A2FB2FA9E00930ED6 /* WhatsChatClone.app */;
@@ -102,6 +125,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				899E3D9B2FB44A0000930ED6 /* XCRemoteSwiftPackageReference "ZLPhotoBrowser" */,
+				899029C12FC9650300F5651C /* XCRemoteSwiftPackageReference "HaishinKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 899E3D6B2FB2FA9E00930ED6 /* Products */;
@@ -374,6 +398,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		899029C12FC9650300F5651C /* XCRemoteSwiftPackageReference "HaishinKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/shogo4405/HaishinKit.swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.2.5;
+			};
+		};
 		899E3D9B2FB44A0000930ED6 /* XCRemoteSwiftPackageReference "ZLPhotoBrowser" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/longitachi/ZLPhotoBrowser.git";
@@ -385,6 +417,31 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		899029C32FC967A900F5651C /* HaishinKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 899029C12FC9650300F5651C /* XCRemoteSwiftPackageReference "HaishinKit" */;
+			productName = HaishinKit;
+		};
+		899029D02FC96AF100F5651C /* MoQTHaishinKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 899029C12FC9650300F5651C /* XCRemoteSwiftPackageReference "HaishinKit" */;
+			productName = MoQTHaishinKit;
+		};
+		899029D22FC96AF100F5651C /* RTCHaishinKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 899029C12FC9650300F5651C /* XCRemoteSwiftPackageReference "HaishinKit" */;
+			productName = RTCHaishinKit;
+		};
+		899029D42FC96AF100F5651C /* RTMPHaishinKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 899029C12FC9650300F5651C /* XCRemoteSwiftPackageReference "HaishinKit" */;
+			productName = RTMPHaishinKit;
+		};
+		899029D62FC96AF100F5651C /* SRTHaishinKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 899029C12FC9650300F5651C /* XCRemoteSwiftPackageReference "HaishinKit" */;
+			productName = SRTHaishinKit;
+		};
 		899E3D9C2FB44A0000930ED6 /* ZLPhotoBrowser */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 899E3D9B2FB44A0000930ED6 /* XCRemoteSwiftPackageReference "ZLPhotoBrowser" */;

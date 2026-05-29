@@ -25,8 +25,8 @@ struct MainTabBarView: View {
                 ChatListView().tabItem { Label("聊天", systemImage: "message.fill") }
                 CallHistoryListView().tabItem { Label("通话", systemImage: "phone") }
                 CommunityRoomListView().tabItem { Label("社群", systemImage: "person.3") }
-                Text("Status View").tabItem { Label("状态", systemImage: "circle.dashed") }
-                
+//                Text("Status View").tabItem { Label("状态", systemImage: "circle.dashed") }
+                DiscoverView().tabItem { Label("状态", systemImage: "circle.dashed") }
                 SettingsView().tabItem { Label("设置", systemImage: "gear") }
     //          
             }
