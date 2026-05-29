@@ -15,28 +15,28 @@ import Combine
 struct AnchorLiveView: View {
     @Environment(\.dismiss) var dismiss
     
-//    @StateObject private var streamManager = LiveStreamManager()
+    @StateObject private var streamManager = LiveStreamManager()
     @State private var isPublishing = false
     
     // 💡 替换为你 Mac Mini 的局域网 IP（如果用模拟器跑，可以直接写 localhost）
-    let srsPushURL = "rtmp://192.168.234.1/live/"
+    let srsPushURL = "rtmp://192.168.5.133/live/"
     let streamKey = "room1"
+    
+//    private var rtmpStream: RTMPStream?
+//    private var mediaMixer = MediaMixer()
 
     var body: some View {
         ZStack {
             // 🔴 1. 主播镜头预览层（底层）
-//            if let stream = streamManager.rtmpStream {
-//                NetStreamLayerView(stream: stream)
-//                    .ignoresSafeArea()
-//            } else {
-//                Color.black.ignoresSafeArea()
-//            }
+            // 使用 HaishinKit 2.x 的 SwiftUI 包装视图
+            MTHKViewRepresentable(previewSource: streamManager, videoGravity: .resizeAspectFill)
+                .ignoresSafeArea()
             
             // 🔴 2. 顶层控制面板
             VStack {
                 HStack {
                     Button {
-//                        stopLive()
+                        stopLive()
                         dismiss()
                     } label: {
                         Image(systemName: "xmark")
@@ -49,7 +49,7 @@ struct AnchorLiveView: View {
                     
                     // 切换前后摄像头
                     Button {
-//                        streamManager.rtmpStream?.cameraPosition = streamManager.rtmpStream?.cameraPosition == .back ? .front : .back
+                        // 逻辑需根据 HaishinKit 2.x Mixer API 调整
                     } label: {
                         Image(systemName: "camera.rotate.fill")
                             .foregroundColor(.white)
@@ -67,9 +67,9 @@ struct AnchorLiveView: View {
                 Button {
                     Task {
                         if isPublishing {
-//                            stopLive()
+                            stopLive()
                         } else {
-//                            startLive()
+                            await startLive()
                         }
                     }
                 } label: {
@@ -86,100 +86,87 @@ struct AnchorLiveView: View {
             }
         }
         .onAppear {
-//            setupCameraAndStream()
-//            streamManager.onStatusChange = { code in
-//                Task { @MainActor in
-//                    handleStatus(code: code)
-//                }
-//            }
+            setupCameraAndStream()
+            streamManager.onStatusChange = { code in
+                Task { @MainActor in
+                    await handleStatus(code: code)
+                }
+            }
         }
         .onDisappear {
-//            stopLive()
+            stopLive()
         }
     }
 }
 
 // MARK: - HaishinKit 音视频流初始化
-//extension AnchorLiveView {
-//    
-//    private func setupCameraAndStream() {
-//        // 1. 初始化专属 RTMP 传输流 - 直接使用 initializer 传入 connection
-//        let stream = RTMPStream(connection: streamManager.rtmpConnection)
-//        
-//        // 2. 提取硬件传感器
-//        let frontCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front)
-//        let defaultMicrophone = AVCaptureDevice.default(for: .audio)
-//        
-//        // 3. 异步配置多媒体硬件与编码器参数
-//        Task {
-//            do {
-//                // 🟢 硬件绑定
-//                try await stream.attachCamera(frontCamera)
-//                try await stream.attachAudio(defaultMicrophone)
-//                
-//                // 🟢 编码器参数
-//                stream.videoSettings = .init(
-//                    width: 720,
-//                    height: 1280,
-//                    bitRate: 1500 * 1000
-//                )
-//                
-//                // 音频设置同理
-//                stream.audioSettings = .init(
-//                    bitRate: 64 * 1000
-//                )
-//                
-//                print("🍏 硬件双路绑定与编码器参数优化成功！")
-//            } catch {
-//                print("❌ 初始化失败: \(error)")
-//            }
-//        }
-//        
-//        streamManager.rtmpStream = stream
-//    }
-//    
-//    private func startLive() async {
-//        // 异步连接
-//        do {
-//            try await streamManager.rtmpConnection.connect(srsPushURL)
-//            isPublishing = true
-//        } catch {
-//            print("❌ 连接失败: \(error)")
-//        }
-//    }
-//    
-//    private func stopLive() {
-//        Task {
-//            await streamManager.rtmpStream?.close()
-//            await streamManager.rtmpConnection.close()
-//            isPublishing = false
-//        }
-//    }
-//    
-//    @MainActor
-//    private func handleStatus(code: String) {
-//        switch code {
-//        case RTMPConnection.Code.connectSuccess.rawValue:
-//            // 后台 API 连接成功，开始向 room1 频道灌入音视频数据
-//            streamManager.rtmpStream?.publish(streamKey)
-//            print("🚀 主播端推流成功！音视频数据已实时上传至本地开源后台")
-//        default:
-//            break
-//        }
-//    }
-//}
-
-// MARK: - SwiftUI 预览桥接组件
-//struct NetStreamLayerView: UIViewRepresentable {
-//    let stream: NetStream
-//    
-//    func makeUIView(context: Context) -> MTHKVideoView {
-//        let view = MTHKVideoView(frame: .zero)
-//        view.videoGravity = .resizeAspectFill
-//        // 挂载 HaishinKit 封装好的 Metal 渲染层
-//        view.attachStream(stream)
-//        return view
-//    }
-//    
-//    func updateUIView(_ uiView: MTHKVideoView, context: Context) {}
-//}
+extension AnchorLiveView {
+    
+    private func setupCameraAndStream() {
+        // 1. 初始化专属 RTMP 传输流
+        let stream = RTMPStream(connection: streamManager.rtmpConnection)
+        
+        // 2. 提取硬件传感器
+        let frontCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front)
+        let defaultMicrophone = AVCaptureDevice.default(for: .audio)
+        
+        // 3. 异步配置多媒体硬件与编码器参数
+        Task {
+            do {
+                // 🟢 绑定到 Mixer (HaishinKit 2.x)
+                try await streamManager.mixer.attachVideo(frontCamera, track: 0)
+                try await streamManager.mixer.attachAudio(defaultMicrophone, track: 0)
+                
+                // 🟢 启动 Mixer 运行
+                try await streamManager.mixer.startRunning()
+                
+                // 🟢 编码器参数
+                try await stream.setVideoSettings(.init(
+                    videoSize: .init(width: 720, height: 1280),
+                    bitRate: 1500 * 1000
+                ))
+                
+                // 音频设置
+                try await stream.setAudioSettings(.init(
+                    bitRate: 64 * 1000
+                ))
+                
+                print("🍏 硬件双路绑定与编码器参数优化成功！")
+            } catch {
+                print("❌ 初始化失败: \(error)")
+            }
+        }
+        
+        streamManager.rtmpStream = stream
+    }
+    
+    private func startLive() async {
+        // 异步连接
+        do {
+            _ = try await streamManager.rtmpConnection.connect(srsPushURL)
+            isPublishing = true
+        } catch {
+            print("❌ 连接失败: \(error)")
+        }
+    }
+    
+    private func stopLive() {
+        Task {
+            _ = try? await streamManager.rtmpStream?.close()
+            _ = try? await streamManager.rtmpConnection.close()
+            isPublishing = false
+        }
+    }
+    
+    @MainActor
+    private func handleStatus(code: String) async {
+        switch code {
+        case RTMPConnection.Code.connectSuccess.rawValue:
+            // 后台 API 连接成功，开始向 room1 频道灌入音视频数据
+            _ = try? await streamManager.rtmpStream?.publish(streamKey)
+            print("🚀 主播端推流成功！音视频数据已实时上传至本地开源后台")
+        default:
+            break
+        }
+    }
+}
