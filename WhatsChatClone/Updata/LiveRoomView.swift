@@ -29,6 +29,8 @@ struct LiveRoomView: View {
     @State private var danmakus: [LiveDanmaku] = []
     @State private var heartCount: Int = 0 // 点赞红心计数
     
+    @State private var isFollow: Bool = false
+    
     // 模拟群友刷弹幕的定时器
     let timer = Timer.publish(every: 1.8, on: .main, in: .common).autoconnect()
     
@@ -125,13 +127,18 @@ extension LiveRoomView {
                 
                 Button {
                     // 关注逻辑预留
+                    if isFollow {
+                        isFollow = false
+                    }else {
+                        isFollow = true
+                    }
                 } label: {
-                    Text("关注")
+                    Text( isFollow ? "已关注" : "关注")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.white)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 4)
-                        .background(Color.red)
+                        .background(isFollow ? Color.gray : Color.red)
                         .clipShape(Capsule())
                 }
                 .padding(.trailing, 4)

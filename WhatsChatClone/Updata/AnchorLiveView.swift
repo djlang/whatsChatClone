@@ -21,6 +21,8 @@ struct AnchorLiveView: View {
     
     @State private var currentPosition: AVCaptureDevice.Position = .front // 默认是前置
     
+    @State private var showExitAlert = false //  控制是否显示退出确认弹窗
+    
     // 💡 替换为你 Mac Mini 的局域网 IP（如果用模拟器跑，可以直接写 localhost）
     let srsPushURL = "rtmp://192.168.234.1/live/"
     let streamKey = "room1"
@@ -39,8 +41,12 @@ struct AnchorLiveView: View {
             VStack {
                 HStack {
                     Button {
-                        stopLive()
-                        dismiss()
+                      
+                        if isPublishing {
+                            showExitAlert = true
+                        }else {
+                            dismiss()
+                        }
                     } label: {
                         Image(systemName: "xmark")
                             .foregroundColor(.white)
@@ -101,6 +107,18 @@ struct AnchorLiveView: View {
         }
         .onDisappear {
             stopLive()
+        }
+        .alert("确定要结束直播吗？", isPresented: $showExitAlert) {
+            Button("继续直播", role: .cancel) {
+                // 主播点错了，什么都不做，直播继续保持
+            }
+            Button("结束直播", role: .destructive) {
+                // 主播确认关闭
+                stopLive() // 🟢 触发你刚才写好的全线断电停机逻辑
+                dismiss()  // 🟢 退出当前开播窗口
+            }
+        } message: {
+            Text("退出后，观众将无法继续观看您的直播画面。")
         }
     }
 }
@@ -180,10 +198,31 @@ extension AnchorLiveView {
 
     
     private func stopLive() {
+        // 改变 UI 状态
+        isPublishing = false
+        
         Task {
-            _ = try? await streamManager.rtmpStream?.close()
-            _ = try? await streamManager.rtmpConnection.close()
-            isPublishing = false
+            do {
+                print("🛑 开始执行全线断电停机...")
+                
+                // 1. 🟢 核心：立刻让混音器停止运行，熄灭隐私绿点/橙点
+                await streamManager.mixer.stopRunning()
+                
+                // 2. 🟢 彻底剥离硬件输入源，断开与 AVCaptureSession 的联系
+                try await streamManager.mixer.attachVideo(nil, track: 0)
+                try await streamManager.mixer.attachAudio(nil, track: 0)
+                
+                // 3. 关闭推流通道与网络套接字
+                _ = try? await streamManager.rtmpStream?.close()
+                _ = try? await streamManager.rtmpConnection.close()
+                
+                // 4. 清空流引用，彻底打破可能存在的强引用循环
+                streamManager.rtmpStream = nil
+                
+                print("🍏 [全线注销] 摄像头和麦克风已安全关闭，无内存泄漏！")
+            } catch {
+                print("❌ 停止直播管线时发生错误: \(error)")
+            }
         }
     }
     
